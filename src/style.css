@@ -13,8 +13,10 @@
 
   --live: #B592F0; --ok: #4FD98C; --warn: #B592F0; --danger: #FF4D6A; --nexus: var(--live);
 
+  /* Space Grotesk carries both display and body: it is loaded locally, has real character,
+     and the previous body font (Inter) was declared but never actually loaded. */
   --font-display: "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
-  --font-body: "Inter", -apple-system, system-ui, "Segoe UI", ui-sans-serif, sans-serif;
+  --font-body: "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
   --font-mono: "Martian Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
 
   --motion-fast: 120ms;
@@ -22,6 +24,8 @@
   --motion-slow: 420ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Slight overshoot for selected/active states -- gives toggles a weighty, physical settle. */
+  --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
 
   --r-control: 2px; --r-card: 4px; --r-panel: 8px;
 }
@@ -33,6 +37,6 @@ body {
   color: var(--text-hi);
   background: var(--ink-canvas);
   font-family: var(--font-body);
-  font-feature-settings: "cv01", "ss01";
+  letter-spacing: .002em;
 }
 #root { max-width: 880px; margin: 0 auto; padding: 24px; }
