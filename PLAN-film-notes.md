@@ -18,13 +18,19 @@ Scope is everything from his messages tonight, in his own words, reduced to a bu
 
 ## Data model (extends the existing seed/deck, doesn't replace it)
 
+**Real correction from Xander, 2026-08-15 night, after seeing the first draft:** date and video link don't belong on every single entry — they belong on the **session** (one film watched, one sitting), with multiple entries nested inside it. His words: "I would provide a film a day, which would have the link and the date. I would have all those notes come together." Watching one film and taking five notes should produce one session with five entries, not five copies of the same date and link.
+
 ```
-entry = {
+session = {
   id, subject: 'opponent' | 'self',
   context: 'practice' | 'game' | null,  // only meaningful for subject: 'self'
   opponentName: string | null,          // only for subject: 'opponent'
   filmDate: string | null,              // ISO date, whatever he says or types
   videoLink: string | null,             // Hudl link etc, just a URL field
+  createdAt
+}
+entry = {
+  id, sessionId,                        // which session this note belongs to
   playId: string | null,                // matched against the existing 79-card deck
   playMatchConfidence: 'exact' | 'fuzzy' | 'none',
   screenshots: [{ id, dataUrl, caption }],
@@ -34,7 +40,7 @@ entry = {
 }
 ```
 
-Lives in its own storage key, separate from the deck, so a log-format change never risks the play data. **Storage engine: IndexedDB, not localStorage** (see Phase 1's risk note) — this holds regardless of whether the app stays a localhost dev build or later becomes a packaged app; IndexedDB is a real browser API either way (the Nexus dashboard itself is Electron, which is just Chromium — same API, no change needed if this app ever gets packaged the same way).
+Both live in their own storage keys, separate from the deck, so a log-format change never risks the play data. **Storage engine: IndexedDB, not localStorage** (see Phase 1's risk note) — this holds regardless of whether the app stays a localhost dev build or later becomes a packaged app; IndexedDB is a real browser API either way (the Nexus dashboard itself is Electron, which is just Chromium — same API, no change needed if this app ever gets packaged the same way).
 
 ## Phase 1 — capture (the actual blocker right now: "I need to be able to log this")
 
@@ -44,7 +50,8 @@ Xander's real correction to the original draft of this phase, kept honest rather
 - **A nice-to-have on top, not a blocker:** "if there is like a button I could just press on the screen and it would voice it and then auto log it, that'd probably be better... I'm not sure how complicated that would be." A press-to-talk button using the browser's built-in speech recognition is a real, buildable add-on (same free, no-API-key mechanism as originally planned) — but it's explicitly optional and comes after the plain text field works, not instead of it.
 - **Screenshot attach must be near-zero effort — his words, "really, really simple... I don't want to waste a bunch of time."** He already has the screenshot on his clipboard the moment he takes it. **Primary mechanism: paste directly into the log form (Ctrl+V)** — a paste-event listener that pulls an image straight off the clipboard, no file picker, no upload dialog. A file-picker fallback can exist but paste is the real UX target.
 - **Play matching, not full AI tagging:** all 79 plays are already named in the system — match spoken/typed text against that known list (exact match first, then fuzzy/substring) and suggest the play. This is the same "smart tagging without manual effort" pattern real voice-note tools use, just scoped to data already in the app instead of a generic tagger.
-- This alone solves: "I need to log this while watching film" and "a month later I won't remember what I meant" — an entry now has the date, the play, and a picture proving it.
+- **The matching has to go further than play names — this is a real, confirmed requirement, not a nice-to-have.** Xander's own examples: he'll describe a screenshot as "number 1 is the outside receiver, number 2 is the inside receiver" (real terminology — receivers are numbered from the sideline inward, #1 always outside-most, confirmed in `research-football-strategy.md`), or "number 1 runs a fade, number 2 runs a comeback" and expects the system to know what that means well enough to help identify the formation and understand the routes. This is exactly what the football-strategy research already covers (personnel notation, route tree, receiver numbering) — it's not a future nice-to-have, it's the reason that research had to happen before this could actually work.
+- This alone solves: "I need to log this while watching film" and "a month later I won't remember what I meant" — an entry now has the date (via its session), the play, and a picture proving it.
 
 **Real risk, unchanged from the original draft, still real:** screenshots are much heavier than the line drawings already in the app, and localStorage has a hard ~5-10MB ceiling — the exact failure mode already fixed once tonight (`saveDeck`'s silent-failure bug). IndexedDB (already in the data model above) is the fix, done once, up front, not discovered after it breaks.
 
@@ -73,19 +80,24 @@ Not a separate build — Phase 1-2 with `subject: 'self'` (`context: 'practice'`
 
 ## Explicitly out of scope for now, confirmed by Xander directly
 
-A full visual/logo redesign of the whole app — his words, "we'll do that at the end when all the functions and everything are actually set up." Noted, not forgotten, not started.
+Any further design/redesign work, general, not just the logo — his words tonight: "we just save the redesign for the end, I don't want to stop us from filling all this stuff out." The 2 design passes already done (structural + the real audit-checklist pass) are enough for now. No more proactive design dispatches until the actual features (log, agents, game plan) are built.
 
-## Open questions — answered directly by Xander, 2026-08-15
+## A standing principle, not a phase: drawings are for him, writing is for the system
 
-1. **Agent roster and memory — answered.** Not one generic agent: a real small team, each with its own persistent memory ("I want to keep everything organized"), but sharing the same underlying football knowledge so they don't drift apart ("they need to... solve the same amount of knowledge, at least ask them"). Proposed roster, his own call to correct if this isn't the right shape:
+On the existing playbook cards (not the log): "I think the drawings are for me and the writing is for you on storage." When Xander fills in a card's assignment/rule text, that plain-English `answerText` field is the channel this whole system (agents included) actually reads — the diagram is for his own visual memorization, not something an agent parses. Worth keeping in mind for any future agent work: read the text, don't try to interpret the drawing.
+
+## Open questions — all now answered directly by Xander, 2026-08-15
+
+1. **Agent roster and memory — confirmed, no changes.** A real small team, each with its own persistent memory ("I want to keep everything organized"), but sharing the same underlying football knowledge so they don't drift apart ("they need to... solve the same amount of knowledge, at least ask them"). Confirmed roster:
    - **Football Scout** — opponent analysis. Its own memory of what's been learned about specific opponents over the season.
    - **Self-Improvement Coach** — Xander's own practice/game film. Its own memory of his recurring patterns over time.
-   - **Game Plan Coordinator** — the one that actually drafts the weekly plan, pulling from both of the above plus the shared knowledge base. This is the one that does the multi-model collaboration (below), since drafting the plan is the actual synthesis step, not the note-taking.
-   All three read the same shared football-strategy knowledge (research dispatched tonight, see below) rather than each re-deriving it, but keep separate memory for what's specific to their own job.
-2. **"Multi-model" for game-plan drafting — answered** (his "multimodal" was almost certainly dictation drift for "multi-model," matching what he said earlier in the same conversation about wanting it "diverse"). Real multi-model collaboration specifically at the Game Plan Coordinator step, not throughout every football task.
-3. **Recurring-issue matching threshold — answered, and it's a real theme-matching problem, not a simple play-lookup.** His own words: "it could be something about tackling, something about form, could be offense or defense, could just be keeping your leverage — there's tons of things, and I'll probably use similar words, so that could be one signal... if you're ever unsure, just ask me." So: match on theme/wording similarity across entries, not just shared play ID, and when the match is genuinely uncertain, surface it as a question rather than silently deciding either way.
+   - **Game Plan Coordinator** — the one that actually drafts the weekly plan, pulling from both of the above plus the shared knowledge base. This is the one that does the multi-model collaboration, since drafting the plan is the actual synthesis step, not the note-taking.
+   - **No 4th "vocabulary/rules" agent.** He raised this directly and answered it himself: "maybe we need to know all the nuances and the vocab stuff, unless that's already built into these agents... they really should be built in." Confirmed — the shared football-strategy knowledge base (below) is read by all three, so rules/vocabulary/technique live there once, not as a separate agent to consult.
+   - **Real requirement, stated directly, not to be dropped:** "all the knowledge is out there online... it's got to provide good intel, it can't just be my knowledge, it's got to be additional stuff as well." The knowledge base is not a container for what Xander already knows — it has to bring real outside coaching technique and strategy he doesn't already have. That's what research-scout actually did (53 tool calls, 20+ real sources, confidence-graded, not summarized from memory) — this bar carries forward to any future research passes for this project, not just the first one.
+2. **"Multi-model" for game-plan drafting — confirmed.** Real multi-model collaboration specifically at the Game Plan Coordinator step, not throughout every football task.
+3. **Recurring-issue matching threshold — confirmed.** Match on theme/wording similarity across entries, not just shared play ID ("it could be something about tackling, something about form... I'll probably use similar words, so that could be one signal"), and when a match is genuinely uncertain, surface it as a question rather than silently deciding either way.
 
-**Research dispatched, 2026-08-15 night:** a real, source-grounded football strategy knowledge base (coverages, why a defense picks one based on formation/personnel, real beater concepts per coverage, pre/post-snap reads) — this is what actually makes the Scout/Coordinator agents useful instead of generic, per his direct ask to "do all the research online." Landing in `research-football-strategy.md` in this same folder; the 3 agent files above get built once it's in and reviewed, not before.
+**Research landed, 2026-08-15 night, reviewed and confirmed correct by Xander:** `research-football-strategy.md` — coverages, why a defense picks one based on formation/personnel, real beater concepts per coverage (his Cover 2 example verified correct, with the precise term and 2 real caveats added), pre/post-snap reads, and the personnel/route-tree vocabulary needed to parse how he'll actually describe screenshots and plays (see Phase 1 above). This is what the 3 agents above get built from.
 
 ## Build order
 
