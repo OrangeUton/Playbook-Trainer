@@ -2,3 +2,4 @@ node_modules
 dist
 .codex-*
 .kimi-*
+scripts/.agent-chat-sessions.json

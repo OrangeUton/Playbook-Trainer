@@ -14,6 +14,15 @@ const PORT = 5199
 const PROJECT_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const SESSIONS_DIR = path.join(PROJECT_ROOT, 'film-log', 'sessions')
 const CODEX_RUN = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus\\scripts\\codex-run.js'
+const NEXUS_DIR = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus'
+// Real bug, found live: a spawned `claude` process inherits whatever CLAUDE_CONFIG_DIR is set in
+// the shell that started this bridge -- fine from a plain terminal, but silently hangs/collides if
+// the bridge itself was started from inside an already-account-scoped session (exactly what
+// happened here). Pin it explicitly to the same dedicated base account telegram-bridge.js already
+// uses for this same reason, so this bridge's identity never depends on how it was launched.
+const AGENT_CLAUDE_CONFIG_DIR = path.join(process.env.USERPROFILE || '', '.claude')
+const AGENT_SESSIONS_FILE = path.join(PROJECT_ROOT, 'scripts', '.agent-chat-sessions.json')
+const VALID_AGENTS = ['football-scout', 'self-improvement-coach', 'game-plan-coordinator']
 
 function entryRevisionHash(entries) { return createHash('sha256').update(JSON.stringify(entries.map((e) => [e.id, e.body, e.tags, e.situation]))).digest('hex').slice(0, 16) }
 
@@ -102,6 +111,38 @@ async function analyzeSession(sessionId, triggeredBy = 'manual') {
   return { skipped: false, issues: merged, doneAt: session.doneAt || null }
 }
 
+async function loadAgentSessions() { try { return JSON.parse(await readFile(AGENT_SESSIONS_FILE, 'utf8')) } catch { return {} } }
+async function saveAgentSessions(sessions) { await writeFile(AGENT_SESSIONS_FILE, JSON.stringify(sessions, null, 2)) }
+
+// A real, ongoing conversation with a named Claude subagent -- not a one-shot Codex call. Xander's
+// own ask: talk to Nick and the other agents from inside the app, no terminal required. Mirrors the
+// exact `claude -p --session-id`/`--resume` pattern already proven by this project's own
+// telegram-bridge.js, just spawning `claude` instead of Codex, and always run from the nexus
+// project folder since that's where these agents' .claude/agents/*.md definitions live.
+function runClaude(prompt, sessionId, isNew) {
+  return new Promise((resolve, reject) => {
+    const continuityArgs = isNew ? ['--session-id', sessionId] : ['--resume', sessionId]
+    const child = spawn('claude', ['-p', prompt, '--permission-mode', 'dontAsk', ...continuityArgs], { cwd: NEXUS_DIR, shell: false, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_CONFIG_DIR: AGENT_CLAUDE_CONFIG_DIR } })
+    let output = '', settled = false
+    const timer = setTimeout(() => { if (settled) return; settled = true; child.kill(); reject(new Error('Agent did not respond within 10 minutes.')) }, 600000)
+    child.stdout.on('data', (chunk) => { output += chunk })
+    child.stderr.on('data', (chunk) => { output += chunk })
+    child.on('error', (error) => { if (settled) return; settled = true; clearTimeout(timer); reject(error) })
+    child.on('close', (code) => { if (settled) return; settled = true; clearTimeout(timer); code === 0 ? resolve(output.trim()) : reject(new Error(`claude exited with code ${code}: ${output.slice(-500)}`)) })
+  })
+}
+
+async function askAgent(agentName, message) {
+  if (!VALID_AGENTS.includes(agentName)) throw new Error(`Unknown agent: ${agentName}`)
+  const sessions = await loadAgentSessions()
+  const isNew = !sessions[agentName]
+  const sessionId = sessions[agentName] || randomUUID()
+  const prompt = `Use the ${agentName} subagent (the Agent tool, subagent_type: "${agentName}") to respond to this message from Xander, sent from the Football app's chat panel: ${message}`
+  const reply = await runClaude(prompt, sessionId, isNew)
+  if (isNew) { sessions[agentName] = sessionId; await saveAgentSessions(sessions) }
+  return reply
+}
+
 async function listAllSessions() {
   const { readdir } = await import('node:fs/promises')
   const names = await readdir(SESSIONS_DIR).catch(() => [])
@@ -141,11 +182,19 @@ const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
-  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
+  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes', '/ask-agent'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
   let body = ''
   req.on('data', (chunk) => { body += chunk })
   req.on('end', async () => {
     try {
+      if (req.url === '/ask-agent') {
+        const { agent, message } = JSON.parse(body || '{}')
+        if (!agent || !message || !message.trim()) throw new Error('agent and message are required')
+        const reply = await askAgent(agent, message.trim())
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ reply }))
+        return
+      }
       if (req.url === '/search-notes') {
         const { query } = JSON.parse(body || '{}')
         if (!query || !query.trim()) throw new Error('query is required')
