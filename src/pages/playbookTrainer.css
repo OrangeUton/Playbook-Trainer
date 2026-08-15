@@ -117,6 +117,9 @@
 .playbook-trainer__tool-palette button:active { transform: translateY(1px); }
 .playbook-trainer__tool-palette button.is-selected { border-color: color-mix(in srgb, var(--nexus) 70%, var(--hairline-hi)); background: color-mix(in srgb, var(--nexus) 16%, transparent); color: var(--text-hi); }
 .playbook-trainer__tool-palette button.is-selected b { color: var(--nexus); }
+.playbook-trainer__tool-undo { margin-left: 6px; padding-left: 12px !important; border-left: 1px solid var(--hairline-hi) !important; }
+.playbook-trainer__tool-undo:disabled { color: var(--text-low); opacity: .5; cursor: not-allowed; }
+.playbook-trainer__tool-undo:disabled:hover { background: transparent; color: var(--text-low); }
 .playbook-trainer__canvas-wrap { position: relative; width: 100%; max-width: 580px; aspect-ratio: 580 / 300; border: 1px solid var(--hairline-hi); border-radius: var(--r-panel); overflow: hidden; touch-action: none; background: linear-gradient(90deg, transparent 82.76%, color-mix(in srgb, var(--deck-well) 55%, transparent) 82.76%); box-shadow: 0 14px 34px color-mix(in srgb, var(--deck-well) 85%, transparent), inset 0 1px 0 color-mix(in srgb, var(--ink-hi) 6%, transparent); }
 /* Grain plus a soft broadcast-style vignette over the turf; never intercepts drawing. */
 .playbook-trainer__canvas-wrap::after { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: var(--grain), radial-gradient(115% 95% at 50% 42%, transparent 58%, color-mix(in srgb, var(--deck-well) 42%, transparent)); }
