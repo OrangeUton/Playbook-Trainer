@@ -1,0 +1,38 @@
+@font-face { font-family: 'Space Grotesk'; src: url('./assets/fonts/SpaceGrotesk-Variable.woff2') format('woff2'); font-weight: 300 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Martian Mono'; src: url('./assets/fonts/MartianMono-Variable.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; }
+
+/* Single fixed theme (Nexus's "Instrument at Night" tokens) -- no theme switcher, this is a
+   one-person tool, not a multi-theme dashboard. */
+:root {
+  --deck-well: #081016; --deck-face: #0E1A20; --deck-raised: #15262E; --deck-inset: #1D323B;
+  --rule: rgba(120, 168, 178, 0.14); --ink-hi: #F1ECDD; --ink-mid: #93A6A3; --ink-low: #5B706D;
+  --ink-canvas: var(--deck-well); --ink-surface: var(--deck-face); --ink-surface2: var(--deck-raised); --ink-surface3: var(--deck-inset);
+  --hairline: var(--rule); --hairline-hi: rgba(120, 168, 178, 0.26);
+
+  --text-hi: var(--ink-hi); --text-mid: var(--ink-mid); --text-low: var(--ink-low);
+
+  --live: #B592F0; --ok: #4FD98C; --warn: #B592F0; --danger: #FF4D6A; --nexus: var(--live);
+
+  --font-display: "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", -apple-system, system-ui, "Segoe UI", ui-sans-serif, sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 420ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --r-control: 2px; --r-card: 4px; --r-panel: 8px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  color: var(--text-hi);
+  background: var(--ink-canvas);
+  font-family: var(--font-body);
+  font-feature-settings: "cv01", "ss01";
+}
+#root { max-width: 880px; margin: 0 auto; padding: 24px; }

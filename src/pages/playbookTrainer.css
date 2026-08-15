@@ -1,0 +1,86 @@
+@keyframes playbook-trainer-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.playbook-trainer { display: grid; gap: 20px; max-width: 820px; margin: 0 auto; padding: 32px 24px 60px; }
+.playbook-trainer__header h1 { margin: 8px 0 6px; color: var(--text-hi); font: 560 26px/1.25 var(--font-display); }
+.playbook-trainer__eyebrow { color: var(--nexus); font: 600 11px var(--font-mono); letter-spacing: .08em; }
+.playbook-trainer__header p { max-width: 56ch; color: var(--text-mid); font: 400 13px/1.55 var(--font-body); }
+
+.playbook-trainer__tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--hairline-hi); }
+.playbook-trainer__tab { padding: 9px 16px; border: none; border-bottom: 2px solid transparent; background: transparent; color: var(--text-mid); font: 600 12px var(--font-mono); letter-spacing: .03em; cursor: pointer; transition: color var(--motion-fast), border-color var(--motion-fast); }
+.playbook-trainer__tab:hover { color: var(--text-hi); }
+.playbook-trainer__tab.is-selected { color: var(--nexus); border-bottom-color: var(--nexus); }
+
+.playbook-trainer__pillgroup { display: grid; gap: 6px; }
+.playbook-trainer__pillgroup-label { color: var(--text-mid); font: 500 10px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.playbook-trainer__pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.playbook-trainer__pill { padding: 7px 12px; border: 1px solid var(--hairline-hi); border-radius: var(--r-control); color: var(--text-mid); background: var(--ink-surface3, var(--ink-surface)); font: 500 12px var(--font-body); cursor: pointer; transition: background var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast); }
+.playbook-trainer__pill:hover:not(:disabled) { border-color: var(--nexus); color: var(--text-hi); }
+.playbook-trainer__pill.is-selected { border-color: var(--nexus); background: color-mix(in srgb, var(--nexus) 22%, transparent); color: var(--text-hi); }
+
+.playbook-trainer__hud { display: flex; align-items: center; gap: 18px; padding: 14px 20px; border: 1px solid var(--hairline-hi); border-radius: var(--r-card); background: linear-gradient(135deg, color-mix(in srgb, var(--nexus) 10%, var(--ink-surface2)), var(--ink-surface2)); flex-wrap: wrap; }
+.playbook-trainer__hud-stat { display: grid; justify-items: center; gap: 2px; padding: 4px 16px; border-left: 1px solid var(--hairline-hi); }
+.playbook-trainer__hud-stat:first-child { border-left: none; padding-left: 0; }
+.playbook-trainer__hud-stat b { color: var(--text-hi); font: 700 20px var(--font-mono); }
+.playbook-trainer__hud-stat small { color: var(--text-mid); font: 500 10px var(--font-mono); letter-spacing: .03em; text-transform: uppercase; }
+
+.playbook-trainer__status { padding: 18px; color: var(--text-mid); font: 400 13px var(--font-body); }
+.playbook-trainer__note { padding: 10px 14px; border: 1px dashed var(--hairline-hi); border-radius: var(--r-control); color: var(--text-mid); font: 400 12px/1.5 var(--font-body); }
+
+.playbook-trainer__card { position: relative; overflow: hidden; padding: 26px; border: 1px solid var(--hairline); border-radius: var(--r-card); background: var(--ink-surface2); animation: playbook-trainer-in 220ms var(--ease-out); display: grid; gap: 14px; }
+.playbook-trainer__card-name { color: var(--text-hi); font: 500 18px/1.4 var(--font-body); }
+.playbook-trainer__tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: -6px; }
+.playbook-trainer__tags i { padding: 2px 7px; border: 1px solid var(--hairline-hi); border-radius: 99px; color: var(--text-mid); background: var(--ink-surface); font: 500 10px var(--font-mono); font-style: normal; letter-spacing: .03em; }
+
+.playbook-trainer__reveal-btn, .playbook-trainer__secondary-btn { padding: 10px 16px; border-radius: var(--r-control); font: 600 12px var(--font-mono); letter-spacing: .03em; cursor: pointer; transition: background var(--motion-fast); }
+.playbook-trainer__reveal-btn { border: 1px solid var(--nexus); color: var(--text-hi); background: color-mix(in srgb, var(--nexus) 16%, transparent); }
+.playbook-trainer__reveal-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--nexus) 26%, transparent); }
+.playbook-trainer__reveal-btn:disabled { opacity: .4; cursor: not-allowed; }
+.playbook-trainer__secondary-btn { border: 1px solid var(--hairline-hi); color: var(--text-mid); background: transparent; }
+.playbook-trainer__secondary-btn:hover { color: var(--text-hi); border-color: var(--nexus); }
+.playbook-trainer__secondary-btn--danger:hover { color: var(--danger); border-color: var(--danger); }
+
+.playbook-trainer__reveal { display: grid; gap: 14px; animation: playbook-trainer-in 200ms var(--ease-out); }
+.playbook-trainer__answer-text { padding: 12px 14px; border: 1px solid var(--hairline-hi); border-radius: 6px; background: var(--ink-surface); color: var(--text-hi); font: 400 13px/1.6 var(--font-body); }
+.playbook-trainer__answer-diagram { display: block; max-width: 100%; border: 1px solid var(--hairline-hi); border-radius: 6px; background: var(--ink-surface); }
+.playbook-trainer__grade-row { display: flex; gap: 10px; }
+.playbook-trainer__grade-btn { flex: 1; padding: 11px; border-radius: var(--r-control); font: 600 12px var(--font-mono); letter-spacing: .03em; cursor: pointer; transition: background var(--motion-fast); }
+.playbook-trainer__grade-btn--got { border: 1px solid color-mix(in srgb, var(--ok) 55%, var(--hairline-hi)); color: var(--text-hi); background: color-mix(in srgb, var(--ok) 16%, transparent); }
+.playbook-trainer__grade-btn--got:hover { background: color-mix(in srgb, var(--ok) 26%, transparent); }
+.playbook-trainer__grade-btn--miss { border: 1px solid color-mix(in srgb, var(--danger) 50%, var(--hairline-hi)); color: var(--text-hi); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.playbook-trainer__grade-btn--miss:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+
+.playbook-trainer__draw-hint { color: var(--text-mid); font: 400 12px var(--font-body); }
+.playbook-trainer__draw-actions { display: flex; gap: 10px; }
+.playbook-trainer__compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.playbook-trainer__compare-label { display: block; margin-bottom: 6px; color: var(--text-mid); font: 600 10px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+
+/* Canvas + static field background -- a subtle green-tinted turf regardless of theme (a football
+   field reads as green even in a neutral-toned dashboard theme), yard lines/hash ticks from the
+   theme's own hairline color so contrast still holds across every theme. */
+.playbook-trainer__canvas-wrap { position: relative; width: 100%; max-width: 480px; aspect-ratio: 480 / 300; border: 1px solid var(--hairline-hi); border-radius: 6px; overflow: hidden; touch-action: none; }
+.playbook-trainer__field-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.playbook-trainer__field-turf { fill: color-mix(in srgb, var(--ok) 7%, var(--ink-surface)); }
+.playbook-trainer__field-yardline { stroke: var(--hairline-hi); stroke-width: 1; }
+.playbook-trainer__field-hash { stroke: var(--hairline-hi); stroke-width: 1.5; }
+.playbook-trainer__canvas { position: relative; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+
+.playbook-trainer__manage { display: grid; gap: 16px; }
+.playbook-trainer__manage-toolbar { display: flex; gap: 10px; }
+.playbook-trainer__manage-group h2 { margin: 0 0 8px; color: var(--text-mid); font: 600 11px var(--font-mono); letter-spacing: .05em; text-transform: uppercase; }
+.playbook-trainer__manage-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--hairline-hi); border-radius: 6px; background: var(--ink-surface2); margin-bottom: 6px; }
+.playbook-trainer__manage-row-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.playbook-trainer__manage-row-name { color: var(--text-hi); font: 500 13px var(--font-body); }
+.playbook-trainer__manage-row-tags, .playbook-trainer__manage-row-box { color: var(--text-mid); font: 500 11px var(--font-mono); }
+.playbook-trainer__manage-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.playbook-trainer__form { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--hairline-hi); border-radius: var(--r-card); background: var(--ink-surface2); }
+.playbook-trainer__field { display: grid; gap: 6px; }
+.playbook-trainer__field > span { color: var(--text-mid); font: 500 10px var(--font-mono); letter-spacing: .04em; text-transform: uppercase; }
+.playbook-trainer__field input, .playbook-trainer__field select, .playbook-trainer__field textarea { padding: 8px 10px; border: 1px solid var(--hairline-hi); border-radius: var(--r-control); background: var(--ink-surface3, var(--ink-surface)); color: var(--text-hi); font: 400 13px var(--font-body); }
+.playbook-trainer__field textarea { resize: vertical; min-height: 70px; }
+.playbook-trainer__field input:focus-visible, .playbook-trainer__field select:focus-visible, .playbook-trainer__field textarea:focus-visible { border-color: var(--nexus); }
+.playbook-trainer__form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .playbook-trainer__card, .playbook-trainer__reveal { animation: none; }
+}
