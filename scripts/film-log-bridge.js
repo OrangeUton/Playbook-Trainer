@@ -21,6 +21,11 @@ const NEXUS_DIR = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus'
 // happened here). Pin it explicitly to the same dedicated base account telegram-bridge.js already
 // uses for this same reason, so this bridge's identity never depends on how it was launched.
 const AGENT_CLAUDE_CONFIG_DIR = path.join(process.env.USERPROFILE || '', '.claude')
+// Real bug, found live: without an explicit broad permission grant, a headless -p session default-
+// denies file access outside its own trusted root -- football-scout got real "permission denied"
+// reading this project's own Film Log/research files, not "file not found". Mirrors the exact fix
+// telegram-bridge.js already uses for the same cross-project reason.
+const AGENT_SETTINGS_PATH = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus\\scripts\\football-agent-settings.json'
 const AGENT_SESSIONS_FILE = path.join(PROJECT_ROOT, 'scripts', '.agent-chat-sessions.json')
 const VALID_AGENTS = ['football-scout', 'self-improvement-coach', 'game-plan-coordinator']
 
@@ -122,7 +127,7 @@ async function saveAgentSessions(sessions) { await writeFile(AGENT_SESSIONS_FILE
 function runClaude(prompt, sessionId, isNew) {
   return new Promise((resolve, reject) => {
     const continuityArgs = isNew ? ['--session-id', sessionId] : ['--resume', sessionId]
-    const child = spawn('claude', ['-p', prompt, '--permission-mode', 'dontAsk', ...continuityArgs], { cwd: NEXUS_DIR, shell: false, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_CONFIG_DIR: AGENT_CLAUDE_CONFIG_DIR } })
+    const child = spawn('claude', ['-p', prompt, '--permission-mode', 'dontAsk', '--settings', AGENT_SETTINGS_PATH, ...continuityArgs], { cwd: NEXUS_DIR, shell: false, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_CONFIG_DIR: AGENT_CLAUDE_CONFIG_DIR } })
     let output = '', settled = false
     const timer = setTimeout(() => { if (settled) return; settled = true; child.kill(); reject(new Error('Agent did not respond within 10 minutes.')) }, 600000)
     child.stdout.on('data', (chunk) => { output += chunk })
@@ -137,7 +142,7 @@ async function askAgent(agentName, message) {
   const sessions = await loadAgentSessions()
   const isNew = !sessions[agentName]
   const sessionId = sessions[agentName] || randomUUID()
-  const prompt = `Use the ${agentName} subagent (the Agent tool, subagent_type: "${agentName}") to respond to this message from Xander, sent from the Football app's chat panel: ${message}`
+  const prompt = `Use the ${agentName} subagent (the Agent tool, subagent_type: "${agentName}") to respond to this message from Xander, sent from the Football app's chat panel. This is a real-time chat reply, not a formal deliverable -- reply directly and concisely, no Recap/Body/Routing/Flags/Next structure, no headers, just answer the question the way a coach would text back. Message: ${message}`
   const reply = await runClaude(prompt, sessionId, isNew)
   if (isNew) { sessions[agentName] = sessionId; await saveAgentSessions(sessions) }
   return reply
