@@ -17,6 +17,30 @@ const CODEX_RUN = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus\\scripts\\co
 
 function entryRevisionHash(entries) { return createHash('sha256').update(JSON.stringify(entries.map((e) => [e.id, e.body, e.tags, e.situation]))).digest('hex').slice(0, 16) }
 
+const VOCAB_PRIMER = `Football vocabulary primer:
+#1/#2/#3 = receivers counted from the sideline inward, #1 is always outside-most. 2x2/3x1 = receiver distribution ("doubles"/"trips"). MOFO/MOFC = middle of field open/closed (two-high vs one-high safety). Field/boundary = wide side/short side of the field from the ball's hash. Personnel: first digit = RBs, second = TEs (11 personnel = 1 RB 1 TE 3 WR). Common formation names: Ace, Trips, Bunch, Dubs, Tight, Wing, Pro, King, Empty, Queen, Georgia, Stack. Common coverages: Cover 0/1/2/3/4/6, 2-Man, quarters, man, zone. Common routes: fade, hitch, slant, dig, out, comeback, seam, post, corner, curl, flat, wheel, mesh.`
+
+function situationPrompt(text) {
+  return `${VOCAB_PRIMER}
+
+Extract structured situation data from this single football film note. The note may be casual, dictated speech -- interpret real football terminology, don't just keyword-match.
+
+Note: "${text}"
+
+Respond with ONLY a JSON object between the markers below, no other text. Use null for anything not mentioned or not confidently inferable -- do not guess. Fields:
+{"down": 1-4 or null, "distance": number of yards or null, "quarter": 1-4 or null, "personnel": e.g. "11" or null, "coverage": e.g. "Cover 2" or null, "fieldOrBoundary": "field"|"boundary"|null, "formation": the formation name mentioned or null, "front": defensive front if mentioned or null, "result": brief outcome e.g. "incomplete", "15 yard gain" or null}
+
+===JSON_START===
+{"down": null, "distance": null, "quarter": null, "personnel": null, "coverage": null, "fieldOrBoundary": null, "formation": null, "front": null, "result": null}
+===JSON_END===`
+}
+
+function parseSituation(output) {
+  const match = output.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/)
+  if (!match) throw new Error('Codex response did not contain the expected JSON markers.')
+  return JSON.parse(match[1])
+}
+
 function buildPrompt(session, entries) {
   const notes = entries.map((e, i) => `[entry ${i + 1} id=${e.id}] ${e.body}${e.tags?.length ? ` (tags: ${e.tags.join(', ')})` : ''}`).join('\n')
   return `You are analyzing a football player's self-improvement film notes for recurring technique/execution issues -- NOT opponent scouting. Session context: subject=self, context=${session.context || 'unspecified'}.
@@ -35,9 +59,9 @@ If nothing recurs, respond with an empty array: []
 ===JSON_END===`
 }
 
-function runCodex(prompt) {
+function runCodex(prompt, model = 'gpt-5.6-terra') {
   return new Promise((resolve, reject) => {
-    const child = spawn('node', [CODEX_RUN, '-a', 'on-request', 'exec', '-m', 'gpt-5.6-terra', '-s', 'read-only', prompt], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn('node', [CODEX_RUN, '-a', 'on-request', 'exec', '-m', model, '-s', 'read-only', prompt], { stdio: ['ignore', 'pipe', 'pipe'] })
     let out = ''
     child.stdout.on('data', (chunk) => { out += chunk })
     child.on('error', reject)
@@ -53,14 +77,17 @@ function parseIssues(output) {
   return parsed
 }
 
-async function analyzeSession(sessionId) {
+async function analyzeSession(sessionId, triggeredBy = 'manual') {
   const sessionPath = path.join(SESSIONS_DIR, `${sessionId}.json`)
   const session = JSON.parse(await readFile(sessionPath, 'utf8'))
   if (session.subject !== 'self') return { skipped: true, reason: 'Recurring-issue detection only runs on self-improvement sessions.', issues: [] }
   const selfEntries = session.entries || []
   const hash = entryRevisionHash(selfEntries)
-  if (session.analysisRun?.entryRevisionHash === hash && session.analysisRun?.status === 'current') return { skipped: true, issues: session.issues || [] }
-  if (!selfEntries.length) return { skipped: true, issues: [] }
+  if (session.analysisRun?.entryRevisionHash === hash && session.analysisRun?.status === 'current') {
+    if (triggeredBy === 'done' && !session.doneAt) { session.doneAt = new Date().toISOString(); await writeFile(sessionPath, JSON.stringify(session, null, 2)) }
+    return { skipped: true, issues: session.issues || [], doneAt: session.doneAt || null }
+  }
+  if (!selfEntries.length) return { skipped: true, issues: [], doneAt: session.doneAt || null }
   const output = await runCodex(buildPrompt(session, selfEntries))
   const found = parseIssues(output)
   const existing = session.issues || []
@@ -69,9 +96,10 @@ async function analyzeSession(sessionId) {
     return prior ? { ...prior, ...issue, id: prior.id, status: prior.status === 'resolved' ? 'recurred' : prior.status || 'open', updatedAt: new Date().toISOString() } : { ...issue, id: randomUUID(), status: 'open', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
   })
   session.issues = merged
-  session.analysisRun = { id: randomUUID(), sessionId, triggeredBy: 'manual', entryRevisionHash: hash, status: 'current', ranAt: new Date().toISOString() }
+  session.analysisRun = { id: randomUUID(), sessionId, triggeredBy, entryRevisionHash: hash, status: 'current', ranAt: new Date().toISOString() }
+  if (triggeredBy === 'done') session.doneAt = new Date().toISOString()
   await writeFile(sessionPath, JSON.stringify(session, null, 2))
-  return { skipped: false, issues: merged }
+  return { skipped: false, issues: merged, doneAt: session.doneAt || null }
 }
 
 const server = createServer((req, res) => {
@@ -79,14 +107,22 @@ const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
-  if (req.method !== 'POST' || req.url !== '/analyze') { res.writeHead(404); res.end('not found'); return }
+  if (req.method !== 'POST' || (req.url !== '/analyze' && req.url !== '/extract-situation')) { res.writeHead(404); res.end('not found'); return }
   let body = ''
   req.on('data', (chunk) => { body += chunk })
   req.on('end', async () => {
     try {
-      const { sessionId } = JSON.parse(body || '{}')
+      if (req.url === '/extract-situation') {
+        const { text } = JSON.parse(body || '{}')
+        if (!text || !text.trim()) throw new Error('text is required')
+        const output = await runCodex(situationPrompt(text), 'gpt-5.6-luna')
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ situation: parseSituation(output) }))
+        return
+      }
+      const { sessionId, triggeredBy } = JSON.parse(body || '{}')
       if (!sessionId) throw new Error('sessionId is required')
-      const result = await analyzeSession(sessionId)
+      const result = await analyzeSession(sessionId, triggeredBy === 'done' || triggeredBy === 'periodic' ? triggeredBy : 'manual')
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(result))
     } catch (error) {
