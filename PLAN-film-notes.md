@@ -31,12 +31,22 @@ session = {
 }
 entry = {
   id, sessionId,                        // which session this note belongs to
-  playId: string | null,                // matched against the existing 79-card deck
-  playMatchConfidence: 'exact' | 'fuzzy' | 'none',
-  screenshots: [{ id, dataUrl, caption }],
+  playId: string | null,                // matched against the existing 79-card deck's full prompt, not just name
+  playNameSnapshot: string | null,       // frozen copy of the matched play's prompt, so a later deck edit/reset never orphans this entry
+  playMatchConfidence: 'exact' | 'fuzzy' | 'none' | 'insufficient', // real 4th state -- the system is allowed to not know
+  screenshots: [{ id, blob, thumbnail, caption }],  // compressed Blob + thumbnail, not a raw base64 dataUrl -- real storage-size win
   body: string,                         // the actual log text, voice or typed
   tags: string[],                       // auto + manual
+  situation: {                          // optional, extracted from body text and offered back for confirmation, never a separate form
+    down: number | null, distance: number | null, quarter: number | null,
+    personnel: string | null, coverage: string | null, fieldOrBoundary: 'field' | 'boundary' | null,
+  },
   createdAt
+}
+issue = {                               // the recurring-issue unit itself -- a real record, not a live text comparison
+  id, skill: string, phaseOfPlay: string | null, symptom: string, suspectedCause: string | null,
+  confidence: 'low' | 'medium' | 'high', entryIds: string[],           // every supporting entry, always shown
+  status: 'open' | 'improving' | 'resolved' | 'recurred', createdAt, updatedAt,
 }
 ```
 
@@ -104,6 +114,19 @@ On the existing playbook cards (not the log): "I think the drawings are for me a
 3. **Recurring-issue matching — confirmed as the hardest real piece in this plan, design expanded in Phase 2 above:** semantic theme-matching (not exact-match), run as a "Done" checkpoint plus a periodic every-few-entries pass during a long session, not live per keystroke and not only at the very end. Asks him when a match is genuinely unclear rather than guessing.
 
 **Research landed, 2026-08-15 night, reviewed and confirmed correct by Xander:** `research-football-strategy.md` — coverages, why a defense picks one based on formation/personnel, real beater concepts per coverage (his Cover 2 example verified correct, with the precise term and 2 real caveats added), pre/post-snap reads, and the personnel/route-tree vocabulary needed to parse how he'll actually describe screenshots and plays (see Phase 1 above). This is what the 3 agents above get built from.
+
+## Independent review (Codex Sol, pre-mortem, 2026-08-15) — 8 real findings, not a rubber stamp
+
+Xander asked for a genuine adversarial pass before committing, done by a model that hadn't written the plan (real distance, not self-review). Verdict: **capture (Phase 1) is solid as designed — the two novel pieces, recurring-issue detection and multi-agent game-plan generation, are not yet buildable as written.** Each finding below, and what happened to it:
+
+1. **No defined bridge between the app and the agents — the most important finding.** The Film Log lives in browser IndexedDB; the 3 agents are Nexus file-backed agents that cannot read a browser's IndexedDB directly. "Uses the existing Claude/Codex/Kimi access" was true but incomplete — it never specified HOW a session's data actually reaches an agent. **Real open decision, not resolved here — needs Xander's call:** the simplest option, and the one this plan recommends, is a versioned JSON export (a real file written into this same project folder, the same way `research-football-strategy.md` and this plan file already live here) that an agent reads directly — no new sync service, no new infra. But this is a real architecture choice, not a detail, and it's his to confirm before Phase 2/3 get built.
+2. **The data model can't actually produce real tendencies from free text alone.** Applied: entries get optional structured fields (down/distance, quarter, personnel, coverage/front, field/boundary, result) — extracted from what he types/says and offered back for confirmation, not a separate form to fill out. "They ran Cover 3 on first down" needs a real count behind it, not a vibe.
+3. **Play matching will not work against the real deck as written — confirmed against actual data, not theoretical.** 42 of the 79 real cards share a duplicate name (`Georgia` alone has 6 variants); some cards carry their L/R distinction in `prompt` but not in `variation`. Applied: match against the full `prompt` (not just `name`) plus aliases, present candidates for confirmation instead of auto-picking, store a name snapshot on the entry so a later deck edit/reset can't make an old log entry unreadable, and the system has to be allowed to say "not enough information" — "#1 fade, #2 comeback" alone doesn't uniquely identify a play.
+4. **Recurring-issue detection needs a real structured issue record, not repeated free-text comparison.** Applied: an issue is its own object (skill, phase of play, symptom, suspected cause, confidence, the entries it's built from, a lifecycle of `open` / `improving` / `resolved` / `recurred`), Xander confirms merges rather than the system silently deciding two things are the same issue, and every recurrence surfaced always shows its exact supporting entries — otherwise Nick accumulates false pattern-memory over a season.
+5. **The second-model review step was underspecified — real risk of becoming "agreement theater."** Applied: the reviewer works from a fixed rubric (does every tendency have real evidence and a sample size, do conclusions overreach the film notes, does a recommendation actually exist in Xander's installed playbook, is scheme failure being confused with execution failure), the Coordinator has to explicitly accept or reject each objection with a reason, and Xander approves the final output. Not just "a second opinion."
+6. **The game plan's actual output and authority boundary was never defined.** Applied, and this is a real, deliberate scoping choice for a high-school player: the system produces an evidence-backed personal prep sheet and coach-discussion questions — not something that reads as overriding a real coach's calls. Concrete output: opponent tendencies with real counts, likely situational calls, pre/post-snap keys, relevant plays already in the deck, personal technique priorities, open uncertainties, and questions to bring to a coach.
+7. **No durable source of truth.** A season of notes, screenshots, and agent memory is too valuable to live only in one browser's IndexedDB, which can be cleared or evicted. Applied: the Film Log is the canonical source, agent memory is derived from it and rebuildable, not the other way around; versioned export/import from day one; screenshots stored as compressed images with thumbnails rather than raw base64 data URLs (real storage-size win on top of the IndexedDB move already planned).
+8. **"Every few entries" and "Done" need real defined behavior, not a vibe.** Applied: sessions autosave and are resumable, a specific entry count (not a fuzzy "every so often") triggers a periodic pass, editing a note after analysis marks that result stale, and pressing Done twice is safe (idempotent), not a duplicate run.
 
 ## Build order
 
