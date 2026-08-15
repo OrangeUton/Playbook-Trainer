@@ -8,14 +8,15 @@ const CATEGORIES = [{ value: 'all', label: 'All' }, { value: 'formation', label:
 const CATEGORY_SELECT_OPTIONS = [{ value: 'formation', label: 'Formation' }, { value: 'concept', label: 'Pass Concept' }, { value: 'fullfield', label: 'Full-Field' }]
 const CANVAS_W = 480, BOARD_W = 580, CANVAS_H = 300, SNAP_DISTANCE = 22, FORMATION_SNAP_DISTANCE = 34
 const BASE_BUBBLES = [
-  ['QB', 240, 188], ['OL_LT', 176, 150], ['OL_LG', 208, 150], ['OL_RG', 272, 150], ['OL_RT', 304, 150],
+  ['QB', 240, 218], ['OL_LT', 176, 180], ['OL_LG', 208, 180], ['OL_RG', 272, 180], ['OL_RT', 304, 180],
 ].map(([type, x, y]) => ({ id: type.toLowerCase(), type, x, y }))
 const SKILL_TRAY = [['X', 520, 56], ['H', 520, 112], ['Y', 520, 168], ['Z', 520, 224]]
-// These are deliberately few, useful football alignments rather than a loose pixel grid.
+// The OL sits on the 30-yard line (y=180) -- that IS the line of scrimmage. These are
+// deliberately few, useful football alignments rather than a loose pixel grid.
 const FORMATION_SLOTS = {
-  QB: [[240, 188], [240, 210], [220, 188], [260, 188]],
-  OL_LT: [[176, 150], [176, 136]], OL_LG: [[208, 150], [208, 136]],
-  OL_RG: [[272, 150], [272, 136]], OL_RT: [[304, 150], [304, 136]],
+  QB: [[240, 218], [240, 240], [220, 218], [260, 218]],
+  OL_LT: [[176, 180], [176, 166]], OL_LG: [[208, 180], [208, 166]],
+  OL_RG: [[272, 180], [272, 166]], OL_RT: [[304, 180], [304, 166]],
   X: [[56, 56], [56, 104], [96, 56], [96, 104], [132, 126]],
   H: [[140, 116], [158, 136], [186, 118], [188, 174], [112, 154], [292, 154], [322, 118], [340, 136]],
   Y: [[154, 126], [170, 142], [200, 118], [280, 118], [310, 142], [326, 126]],
@@ -36,7 +37,7 @@ function strokePath(points) { return pathFromStroke(getStroke(points.map((p) => 
 
 function useDrillCard(pool) { const [currentId, setCurrentId] = useState(null); const poolRef = useRef(pool); useEffect(() => { poolRef.current = pool }); const advance = useCallback((excludeId) => { const p = poolRef.current; setCurrentId(p.length ? weightedPick(p, excludeId).id : null) }, []); const poolIds = pool.map((c) => c.id).join(','); useEffect(() => { if (!pool.length) { setCurrentId(null); return } if (!pool.some((c) => c.id === currentId)) advance(currentId) }, [poolIds]); return { current: pool.find((c) => c.id === currentId) || null, advance } }
 function PillGroup({ label, options, value, onChange }) { return <div className="playbook-trainer__pillgroup"><span className="playbook-trainer__pillgroup-label">{label}</span><div className="playbook-trainer__pills" role="radiogroup" aria-label={label}>{options.map((opt) => <button key={String(opt.value)} type="button" role="radio" aria-checked={value === opt.value} className={`playbook-trainer__pill${value === opt.value ? ' is-selected' : ''}`} onClick={() => onChange(opt.value)}>{opt.label}</button>)}</div></div> }
-function FieldBackground() { const lines = [60, 120, 180, 240]; const bands = [0, 120, 240]; const hashX = [CANVAS_W / 3, (CANVAS_W * 2) / 3]; return <svg className="playbook-trainer__field-bg" viewBox={`0 0 ${BOARD_W} ${CANVAS_H}`} aria-hidden="true"><rect width={CANVAS_W} height={CANVAS_H} className="playbook-trainer__field-turf" />{bands.map((y) => <rect key={y} y={y} width={CANVAS_W} height="60" className="playbook-trainer__field-band" />)}{lines.map((y) => <line key={y} x1="0" y1={y} x2={CANVAS_W} y2={y} className="playbook-trainer__field-yardline" />)}{hashX.map((x) => <line key={x} x1={x} y1="0" x2={x} y2={CANVAS_H} className="playbook-trainer__field-hash" />)}{lines.flatMap((y, i) => [<text key={`nl${y}`} x="9" y={y - 7} className="playbook-trainer__field-number">{(i + 1) * 10}</text>, <text key={`nr${y}`} x={CANVAS_W - 9} y={y - 7} textAnchor="end" className="playbook-trainer__field-number">{(i + 1) * 10}</text>])}<line x1={CANVAS_W + 1.5} y1="0" x2={CANVAS_W + 1.5} y2={CANVAS_H} className="playbook-trainer__field-trayline" /></svg> }
+function FieldBackground() { const lines = [60, 120, 180, 240]; const fiveLines = [30, 90, 150, 210, 270]; const bands = [0, 120, 240]; const hashX = [CANVAS_W / 3, (CANVAS_W * 2) / 3]; return <svg className="playbook-trainer__field-bg" viewBox={`0 0 ${BOARD_W} ${CANVAS_H}`} aria-hidden="true"><rect width={CANVAS_W} height={CANVAS_H} className="playbook-trainer__field-turf" />{bands.map((y) => <rect key={y} y={y} width={CANVAS_W} height="60" className="playbook-trainer__field-band" />)}{fiveLines.map((y) => <line key={`5-${y}`} x1="0" y1={y} x2={CANVAS_W} y2={y} className="playbook-trainer__field-fiveline" />)}{lines.map((y) => <line key={y} x1="0" y1={y} x2={CANVAS_W} y2={y} className="playbook-trainer__field-yardline" />)}{hashX.map((x) => <line key={x} x1={x} y1="0" x2={x} y2={CANVAS_H} className="playbook-trainer__field-hash" />)}{lines.flatMap((y, i) => [<text key={`nl${y}`} x="9" y={y - 7} className="playbook-trainer__field-number">{(i + 1) * 10}</text>, <text key={`nr${y}`} x={CANVAS_W - 9} y={y - 7} textAnchor="end" className="playbook-trainer__field-number">{(i + 1) * 10}</text>])}<line x1={CANVAS_W + 1.5} y1="0" x2={CANVAS_W + 1.5} y2={CANVAS_H} className="playbook-trainer__field-trayline" /></svg> }
 function Bubble({ bubble, editable, onDragStart }) { const isQb = bubble.type === 'QB'; return <g className={`playbook-trainer__bubble playbook-trainer__bubble--${bubble.type.toLowerCase()}${editable ? ' is-editable' : ''}`} transform={`translate(${bubble.x} ${bubble.y})`} onPointerDown={(e) => editable && onDragStart(e, bubble.id)}>{isQb ? <rect x="-13" y="-10" width="26" height="20" rx="2" /> : <circle r={bubble.type.startsWith('OL_') ? 11 : 14} />}<text dy=".35em">{isQb ? 'QB' : bubble.type.startsWith('OL_') ? '' : bubble.type}</text></g> }
 function DiagramSvg({ diagram, editable = false, onChange, tool = 'freehand', snapFormation = true }) {
   const svgRef = useRef(null), activeLineRef = useRef(null), drag = useRef(null)
