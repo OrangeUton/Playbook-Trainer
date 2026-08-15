@@ -102,16 +102,59 @@ async function analyzeSession(sessionId, triggeredBy = 'manual') {
   return { skipped: false, issues: merged, doneAt: session.doneAt || null }
 }
 
+async function listAllSessions() {
+  const { readdir } = await import('node:fs/promises')
+  const names = await readdir(SESSIONS_DIR).catch(() => [])
+  const sessions = []
+  for (const name of names) { if (!name.endsWith('.json')) continue; try { sessions.push(JSON.parse(await readFile(path.join(SESSIONS_DIR, name), 'utf8'))) } catch { /* skip unreadable session files */ } }
+  return sessions
+}
+
+function searchPrompt(query, sessions) {
+  const corpus = sessions.flatMap((session) => (session.entries || []).map((entry) => `[entry id=${entry.id} session=${session.id} week=${session.week || 'unlabeled'} subject=${session.subject}${session.subject === 'opponent' ? ` opponent=${session.opponentName || 'unknown'} unit=${entry.unit || 'unknown'}` : ` context=${session.context || 'unknown'}`}] ${entry.body}`)).join('\n')
+  return `${VOCAB_PRIMER}
+
+You are searching a football player's full film-log history across every week of the season for notes relevant to this query: "${query}"
+
+All logged notes, across all sessions:
+${corpus || '(no notes logged yet)'}
+
+Find the notes that are genuinely relevant to the query -- similar offensive/defensive tendencies, similar formations or concepts, similar technique issues, not just shared keywords. Rank by relevance.
+
+Respond with ONLY a JSON array between the markers, no other text. Each element: {"entryId": "...", "sessionId": "...", "reason": "one sentence on why this is relevant"}. Return at most 8 results. If nothing is genuinely relevant, return [].
+
+===JSON_START===
+[]
+===JSON_END===`
+}
+
+function parseSearchResults(output) {
+  const match = output.match(/===JSON_START===\s*([\s\S]*?)\s*===JSON_END===/)
+  if (!match) throw new Error('Codex response did not contain the expected JSON markers.')
+  const parsed = JSON.parse(match[1])
+  if (!Array.isArray(parsed)) throw new Error('Codex response JSON was not an array.')
+  return parsed
+}
+
 const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
-  if (req.method !== 'POST' || (req.url !== '/analyze' && req.url !== '/extract-situation')) { res.writeHead(404); res.end('not found'); return }
+  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
   let body = ''
   req.on('data', (chunk) => { body += chunk })
   req.on('end', async () => {
     try {
+      if (req.url === '/search-notes') {
+        const { query } = JSON.parse(body || '{}')
+        if (!query || !query.trim()) throw new Error('query is required')
+        const sessions = await listAllSessions(), output = await runCodex(searchPrompt(query, sessions))
+        const ranked = parseSearchResults(output).map((hit) => { const session = sessions.find((s) => s.id === hit.sessionId), entry = session?.entries?.find((e) => e.id === hit.entryId); return entry ? { ...hit, entry, session: { id: session.id, week: session.week, subject: session.subject, opponentName: session.opponentName, context: session.context, filmDate: session.filmDate } } : null }).filter(Boolean)
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ results: ranked }))
+        return
+      }
       if (req.url === '/extract-situation') {
         const { text } = JSON.parse(body || '{}')
         if (!text || !text.trim()) throw new Error('text is required')
