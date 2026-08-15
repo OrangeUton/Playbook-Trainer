@@ -7,11 +7,21 @@ const STORAGE_KEY = 'playbook-trainer-deck-v1'
 const CATEGORIES = [{ value: 'all', label: 'All' }, { value: 'formation', label: 'Formations' }, { value: 'concept', label: 'Pass Concepts' }, { value: 'fullfield', label: 'Full-Field' }]
 const CATEGORY_SELECT_OPTIONS = [{ value: 'formation', label: 'Formation' }, { value: 'concept', label: 'Pass Concept' }, { value: 'fullfield', label: 'Full-Field' }]
 const SIDE_OPTIONS = [{ value: '', label: 'None' }, { value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]
-const CANVAS_W = 480, BOARD_W = 580, CANVAS_H = 300, SNAP_DISTANCE = 14
+const CANVAS_W = 480, BOARD_W = 580, CANVAS_H = 300, SNAP_DISTANCE = 22, FORMATION_SNAP_DISTANCE = 34
 const BASE_BUBBLES = [
   ['QB', 240, 188], ['OL_LT', 176, 150], ['OL_LG', 208, 150], ['OL_RG', 272, 150], ['OL_RT', 304, 150],
 ].map(([type, x, y]) => ({ id: type.toLowerCase(), type, x, y }))
 const SKILL_TRAY = [['X', 520, 56], ['H', 520, 112], ['Y', 520, 168], ['Z', 520, 224]]
+// These are deliberately few, useful football alignments rather than a loose pixel grid.
+const FORMATION_SLOTS = {
+  QB: [[240, 188], [240, 210], [220, 188], [260, 188]],
+  OL_LT: [[176, 150], [176, 136]], OL_LG: [[208, 150], [208, 136]],
+  OL_RG: [[272, 150], [272, 136]], OL_RT: [[304, 150], [304, 136]],
+  X: [[56, 56], [56, 104], [96, 56], [96, 104], [132, 126]],
+  H: [[140, 116], [158, 136], [186, 118], [188, 174], [112, 154], [292, 154], [322, 118], [340, 136]],
+  Y: [[154, 126], [170, 142], [200, 118], [280, 118], [310, 142], [326, 126]],
+  Z: [[424, 56], [424, 104], [384, 56], [384, 104], [348, 126]],
+}
 
 function loadDeck() { try { const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); if (Array.isArray(raw)) return raw } catch {} return structuredClone(seed) }
 function saveDeck(deck) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(deck)) } catch { window.alert('Could not save -- storage is full or unavailable. This change was NOT saved. Delete an old diagram to free space, then try again.') } }
@@ -23,23 +33,70 @@ function tagsFor(card) { return [humanizeSide(card.side), card.variation].filter
 function createDiagram() { return { bubbles: [...BASE_BUBBLES, ...SKILL_TRAY.map(([type, x, y]) => ({ id: type.toLowerCase(), type, x, y }))], lines: [] } }
 function normalDiagram(diagram) { return diagram && typeof diagram === 'object' ? diagram : null }
 function pathFromStroke(points) { if (!points.length) return ''; const d = points.reduce((path, p, i) => `${path}${i ? ' L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`, ''); return `${d} Z` }
-function strokePath(points) { return pathFromStroke(getStroke(points.map((p) => [p.x, p.y, 0.5]), { size: 3.4, smoothing: 0.65, streamline: 0.45, thinning: 0 })) }
+function strokePath(points) { return pathFromStroke(getStroke(points.map((p) => [p.x, p.y, 0.5]), { size: 3.6, smoothing: 0.9, streamline: 0.78, thinning: 0 })) }
 
 function useDrillCard(pool) { const [currentId, setCurrentId] = useState(null); const poolRef = useRef(pool); useEffect(() => { poolRef.current = pool }); const advance = useCallback((excludeId) => { const p = poolRef.current; setCurrentId(p.length ? weightedPick(p, excludeId).id : null) }, []); const poolIds = pool.map((c) => c.id).join(','); useEffect(() => { if (!pool.length) { setCurrentId(null); return } if (!pool.some((c) => c.id === currentId)) advance(currentId) }, [poolIds]); return { current: pool.find((c) => c.id === currentId) || null, advance } }
 function PillGroup({ label, options, value, onChange }) { return <div className="playbook-trainer__pillgroup"><span className="playbook-trainer__pillgroup-label">{label}</span><div className="playbook-trainer__pills" role="radiogroup" aria-label={label}>{options.map((opt) => <button key={String(opt.value)} type="button" role="radio" aria-checked={value === opt.value} className={`playbook-trainer__pill${value === opt.value ? ' is-selected' : ''}`} onClick={() => onChange(opt.value)}>{opt.label}</button>)}</div></div> }
 function FieldBackground() { const lines = [60, 120, 180, 240]; const bands = [0, 120, 240]; const hashes = [30, 90, 150, 210, 270].flatMap((y) => { const row = []; for (let x = 24; x <= 456; x += 36) row.push([x, y]); return row }); return <svg className="playbook-trainer__field-bg" viewBox={`0 0 ${BOARD_W} ${CANVAS_H}`} aria-hidden="true"><rect width={CANVAS_W} height={CANVAS_H} className="playbook-trainer__field-turf" />{bands.map((y) => <rect key={y} y={y} width={CANVAS_W} height="60" className="playbook-trainer__field-band" />)}{lines.map((y) => <line key={y} x1="0" y1={y} x2={CANVAS_W} y2={y} className="playbook-trainer__field-yardline" />)}{hashes.map(([x, y]) => <line key={`${x}-${y}`} x1={x - 5} y1={y} x2={x + 5} y2={y} className="playbook-trainer__field-hash" />)}{lines.flatMap((y, i) => [<text key={`nl${y}`} x="9" y={y - 7} className="playbook-trainer__field-number">{(i + 1) * 10}</text>, <text key={`nr${y}`} x={CANVAS_W - 9} y={y - 7} textAnchor="end" className="playbook-trainer__field-number">{(i + 1) * 10}</text>])}<line x1={CANVAS_W + 1.5} y1="0" x2={CANVAS_W + 1.5} y2={CANVAS_H} className="playbook-trainer__field-trayline" /></svg> }
 function Bubble({ bubble, editable, onDragStart }) { const isQb = bubble.type === 'QB'; return <g className={`playbook-trainer__bubble playbook-trainer__bubble--${bubble.type.toLowerCase()}${editable ? ' is-editable' : ''}`} transform={`translate(${bubble.x} ${bubble.y})`} onPointerDown={(e) => editable && onDragStart(e, bubble.id)}>{isQb ? <rect x="-13" y="-10" width="26" height="20" rx="2" /> : <circle r={bubble.type.startsWith('OL_') ? 11 : 14} />}<text dy=".35em">{isQb ? 'QB' : bubble.type.startsWith('OL_') ? '' : bubble.type}</text></g> }
-function DiagramSvg({ diagram, editable = false, onChange }) {
-  const svgRef = useRef(null), [activeLine, setActiveLine] = useState(null), [snap, setSnap] = useState(null), drag = useRef(null)
+function DiagramSvg({ diagram, editable = false, onChange, tool = 'freehand' }) {
+  const svgRef = useRef(null), activeLineRef = useRef(null), drag = useRef(null)
+  const [activeLine, setActiveLine] = useState(null), [snap, setSnap] = useState(null), [formationSnap, setFormationSnap] = useState(null)
   const point = (event) => { const r = svgRef.current.getBoundingClientRect(); return { x: Math.max(0, Math.min(BOARD_W, (event.clientX - r.left) * BOARD_W / r.width)), y: Math.max(0, Math.min(CANVAS_H, (event.clientY - r.top) * CANVAS_H / r.height)) } }
-  const snapPoint = (raw) => { const points = [...diagram.bubbles, ...diagram.lines.flatMap((line) => line.points.length ? [line.points[0], line.points.at(-1)] : [])]; const nearest = points.reduce((best, candidate) => { const d = Math.hypot(raw.x - candidate.x, raw.y - candidate.y); return d < best.d ? { candidate, d } : best }, { d: Infinity }); if (nearest.d <= SNAP_DISTANCE) { setSnap(nearest.candidate); return { x: nearest.candidate.x, y: nearest.candidate.y } } setSnap(null); return raw }
-  const startDraw = (e) => { if (!editable || e.button !== 0) return; const p = snapPoint(point(e)); svgRef.current.setPointerCapture(e.pointerId); setActiveLine({ id: crypto.randomUUID(), points: [p] }) }
-  const move = (e) => { if (!editable) return; const p = point(e); if (drag.current) { const next = { ...diagram, bubbles: diagram.bubbles.map((b) => b.id === drag.current ? { ...b, ...p } : b) }; onChange(next); return } if (activeLine) setActiveLine((line) => ({ ...line, points: [...line.points, snapPoint(p)] })) }
-  const stop = (e) => { if (drag.current) { drag.current = null; setSnap(null) } if (activeLine?.points.length > 1) onChange({ ...diagram, lines: [...diagram.lines, activeLine] }); setActiveLine(null); setSnap(null); if (svgRef.current?.hasPointerCapture?.(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId) }
+  const setWorkingLine = (line) => { activeLineRef.current = line; setActiveLine(line) }
+  const snapPoint = (raw) => {
+    const endpoints = diagram.lines.flatMap((line) => Array.isArray(line.points) && line.points.length ? [line.points[0], line.points.at(-1)] : [])
+    const activeStart = activeLineRef.current?.points?.[0] ? [activeLineRef.current.points[0]] : []
+    const points = [...diagram.bubbles, ...endpoints, ...activeStart]
+    const nearest = points.reduce((best, candidate) => { const d = Math.hypot(raw.x - candidate.x, raw.y - candidate.y); return d < best.d ? { candidate, d } : best }, { d: Infinity })
+    if (nearest.d <= SNAP_DISTANCE) { setSnap(nearest.candidate); return { x: nearest.candidate.x, y: nearest.candidate.y } }
+    setSnap(null); return raw
+  }
+  const nearestFormationSlot = (bubble, raw) => {
+    const slots = FORMATION_SLOTS[bubble.type] || []
+    const nearest = slots.reduce((best, slot) => { const d = Math.hypot(raw.x - slot[0], raw.y - slot[1]); return d < best.d ? { slot, d } : best }, { d: Infinity })
+    return nearest.d <= FORMATION_SNAP_DISTANCE ? { x: nearest.slot[0], y: nearest.slot[1] } : null
+  }
+  const startDraw = (e) => { if (!editable || e.button !== 0) return; const p = snapPoint(point(e)); svgRef.current.setPointerCapture(e.pointerId); setWorkingLine({ id: crypto.randomUUID(), tool, points: [p] }) }
+  const move = (e) => {
+    if (!editable) return
+    const raw = point(e)
+    if (drag.current) {
+      const bubble = diagram.bubbles.find((b) => b.id === drag.current)
+      const locked = nearestFormationSlot(bubble, raw)
+      setFormationSnap(locked)
+      const position = locked || raw
+      onChange({ ...diagram, bubbles: diagram.bubbles.map((b) => b.id === drag.current ? { ...b, ...position } : b) })
+      return
+    }
+    const line = activeLineRef.current
+    if (!line) return
+    const p = snapPoint(raw)
+    setWorkingLine({ ...line, points: line.tool === 'freehand' ? [...line.points, p] : [line.points[0], p] })
+  }
+  const stop = (e) => {
+    if (drag.current) { drag.current = null; setFormationSnap(null) }
+    let line = activeLineRef.current
+    // Pointer-up is the authoritative final coordinate: this makes the visible lock exact
+    // even when the browser did not dispatch a final pointer-move event.
+    if (line && e.type === 'pointerup') {
+      const p = snapPoint(point(e))
+      line = { ...line, points: line.tool === 'freehand' ? [...line.points, p] : [line.points[0], p] }
+    }
+    if (line?.points.length > 1 && Math.hypot(line.points.at(-1).x - line.points[0].x, line.points.at(-1).y - line.points[0].y) > 3) onChange({ ...diagram, lines: [...diagram.lines, line] })
+    setWorkingLine(null); setSnap(null)
+    if (svgRef.current?.hasPointerCapture?.(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId)
+  }
   const startDrag = (e, id) => { e.stopPropagation(); drag.current = id; svgRef.current.setPointerCapture(e.pointerId) }
-  return <svg ref={svgRef} viewBox={`0 0 ${BOARD_W} ${CANVAS_H}`} className={`playbook-trainer__diagram${editable ? ' is-editable' : ''}`} onPointerDown={startDraw} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} onContextMenu={(e) => e.preventDefault()}>{diagram.lines.map((line) => <path key={line.id} className="playbook-trainer__route" d={strokePath(line.points)} />)}{activeLine && <path className="playbook-trainer__route is-active" d={strokePath(activeLine.points)} />}{diagram.bubbles.map((bubble) => <Bubble key={bubble.id} bubble={bubble} editable={editable} onDragStart={startDrag} />)}{snap && <circle className="playbook-trainer__snap" cx={snap.x} cy={snap.y} r="5" />}</svg>
+  const renderRoute = (line, active = false) => {
+    const points = line.points || [], className = `playbook-trainer__route${active ? ' is-active' : ''}`
+    if (points.length < 2) return null
+    if (line.tool === 'line' || line.tool === 'arrow') return <line className={`${className} playbook-trainer__route--straight`} x1={points[0].x} y1={points[0].y} x2={points.at(-1).x} y2={points.at(-1).y} markerEnd={line.tool === 'arrow' ? 'url(#playbook-arrowhead)' : undefined} />
+    return <path className={className} d={strokePath(points)} />
+  }
+  return <svg ref={svgRef} viewBox={`0 0 ${BOARD_W} ${CANVAS_H}`} className={`playbook-trainer__diagram${editable ? ' is-editable' : ''}`} onPointerDown={startDraw} onPointerMove={move} onPointerUp={stop} onPointerCancel={stop} onContextMenu={(e) => e.preventDefault()}><defs><marker id="playbook-arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" className="playbook-trainer__arrowhead" /></marker></defs>{diagram.lines.map((line) => <g key={line.id}>{renderRoute(line)}{Array.isArray(line.points) && line.points.length > 1 && <circle className="playbook-trainer__connection" cx={line.points.at(-1).x} cy={line.points.at(-1).y} r="3" />}</g>)}{activeLine && renderRoute(activeLine, true)}{formationSnap && <circle className="playbook-trainer__formation-snap" cx={formationSnap.x} cy={formationSnap.y} r="17" />}{diagram.bubbles.map((bubble) => <Bubble key={bubble.id} bubble={bubble} editable={editable} onDragStart={startDrag} />)}{snap && <circle className="playbook-trainer__snap" cx={snap.x} cy={snap.y} r="6" />}</svg>
 }
-function DiagramBoard({ diagram, editable, onChange }) { return <div className="playbook-trainer__diagram-editor"><div className="playbook-trainer__canvas-wrap"><FieldBackground /><DiagramSvg diagram={diagram} editable={editable} onChange={onChange} /></div>{editable && <aside className="playbook-trainer__position-tray"><b>Personnel</b><span>Drag X · H · Y · Z onto the field. Routes snap to players and endpoints.</span></aside>}</div> }
+function DiagramBoard({ diagram, editable, onChange }) { const [tool, setTool] = useState('freehand'); return <div className="playbook-trainer__diagram-editor">{editable && <div className="playbook-trainer__tool-palette" role="toolbar" aria-label="Diagram drawing tools"><span>Draw</span>{[['freehand', '✎', 'Freehand'], ['line', '╱', 'Line'], ['arrow', '→', 'Arrow']].map(([value, icon, label]) => <button key={value} type="button" className={tool === value ? 'is-selected' : ''} aria-pressed={tool === value} onClick={() => setTool(value)} title={label}><b aria-hidden="true">{icon}</b>{label}</button>)}</div>}<div className="playbook-trainer__canvas-wrap"><FieldBackground /><DiagramSvg diagram={diagram} editable={editable} onChange={onChange} tool={tool} /></div>{editable && <aside className="playbook-trainer__position-tray"><b>Personnel & routes</b><span>Drag players onto a highlighted formation slot. Routes lock to bubbles and route endpoints; use Arrow for route direction.</span></aside>}</div> }
 function DiagramView({ diagram, className = '' }) { const value = normalDiagram(diagram); return value && <div className={`playbook-trainer__answer-diagram ${className}`}><DiagramBoard diagram={value} /></div> }
 function Hud({ session, mastered, total }) { const accuracy = session.attempts ? Math.round(session.correct / session.attempts * 100) : null; return <div className="playbook-trainer__hud"><div className="playbook-trainer__hud-stat"><b>{accuracy === null ? '—' : `${accuracy}%`}</b><small>accuracy this session</small></div><div className="playbook-trainer__hud-stat"><b>{session.streak}</b><small>streak</small></div><div className="playbook-trainer__hud-stat"><b>{mastered}/{total}</b><small>mastered</small></div></div> }
 function EmptyState({ children }) { return <p className="playbook-trainer__status">{children}</p> }

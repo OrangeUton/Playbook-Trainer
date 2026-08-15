@@ -85,6 +85,13 @@
    The turf stays a muted night-game green regardless of the surrounding ink theme; markings
    are chalk white at low opacity so bubbles and routes keep top contrast. */
 .playbook-trainer__diagram-editor { display: grid; gap: 10px; max-width: 580px; }
+.playbook-trainer__tool-palette { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; padding: 7px; border: 1px solid var(--hairline-hi); border-radius: var(--r-control); background: color-mix(in srgb, var(--ink-surface) 82%, transparent); }
+.playbook-trainer__tool-palette > span { margin: 0 5px 0 3px; color: var(--text-low); font: 600 9px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
+.playbook-trainer__tool-palette button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--text-mid); font: 600 10px var(--font-mono); letter-spacing: .04em; cursor: pointer; transition: color var(--motion-fast), background var(--motion-fast), border-color var(--motion-fast); }
+.playbook-trainer__tool-palette button b { width: 13px; color: var(--text-hi); font: 700 14px/1 var(--font-body); text-align: center; }
+.playbook-trainer__tool-palette button:hover { color: var(--text-hi); background: color-mix(in srgb, var(--ink-hi) 6%, transparent); }
+.playbook-trainer__tool-palette button.is-selected { border-color: color-mix(in srgb, var(--nexus) 70%, var(--hairline-hi)); background: color-mix(in srgb, var(--nexus) 16%, transparent); color: var(--text-hi); }
+.playbook-trainer__tool-palette button.is-selected b { color: var(--nexus); }
 .playbook-trainer__canvas-wrap { position: relative; width: 100%; max-width: 580px; aspect-ratio: 580 / 300; border: 1px solid var(--hairline-hi); border-radius: var(--r-panel); overflow: hidden; touch-action: none; background: linear-gradient(90deg, transparent 82.76%, rgba(0, 0, 0, .3) 82.76%); box-shadow: 0 12px 30px rgba(0, 0, 0, .32), inset 0 1px 0 color-mix(in srgb, var(--ink-hi) 6%, transparent); }
 .playbook-trainer__field-bg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .playbook-trainer__field-turf { fill: color-mix(in srgb, var(--ok) 9%, var(--ink-surface)); }
@@ -96,7 +103,9 @@
 .playbook-trainer__diagram { position: relative; width: 100%; height: 100%; display: block; }
 .playbook-trainer__diagram.is-editable { cursor: crosshair; touch-action: none; }
 .playbook-trainer__route { fill: var(--live); fill-opacity: .94; pointer-events: none; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--live) 55%, transparent)); animation: playbook-trainer-route-in var(--motion-base) var(--ease-out); }
+.playbook-trainer__route--straight { fill: none; stroke: var(--live); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .playbook-trainer__route.is-active { fill-opacity: .72; }
+.playbook-trainer__arrowhead { fill: var(--live); }
 .playbook-trainer__bubble { fill: var(--ink-surface2); stroke: color-mix(in srgb, var(--text-hi) 85%, transparent); stroke-width: 2; transition: filter var(--motion-fast), stroke var(--motion-fast); }
 .playbook-trainer__bubble text { fill: var(--text-hi); stroke: none; text-anchor: middle; font: 700 10px var(--font-mono); pointer-events: none; }
 .playbook-trainer__bubble--qb { fill: color-mix(in srgb, var(--nexus) 42%, var(--ink-surface)); stroke: color-mix(in srgb, var(--nexus) 85%, var(--text-hi)); }
@@ -105,6 +114,8 @@
 .playbook-trainer__bubble.is-editable:hover { stroke: var(--nexus); filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .5)) drop-shadow(0 0 6px color-mix(in srgb, var(--nexus) 45%, transparent)); }
 .playbook-trainer__bubble.is-editable:active { cursor: grabbing; }
 .playbook-trainer__snap { fill: var(--text-hi); stroke: var(--nexus); stroke-width: 3; pointer-events: none; animation: playbook-trainer-snap 900ms var(--ease-std) infinite; }
+.playbook-trainer__connection { fill: var(--live); stroke: var(--ink-surface); stroke-width: 1.5; pointer-events: none; opacity: .9; }
+.playbook-trainer__formation-snap { fill: color-mix(in srgb, var(--nexus) 16%, transparent); stroke: var(--nexus); stroke-width: 2; stroke-dasharray: 3 3; pointer-events: none; animation: playbook-trainer-snap 900ms var(--ease-std) infinite; }
 .playbook-trainer__position-tray { padding: 9px 12px; border-left: 2px solid var(--nexus); border-radius: 0 var(--r-control) var(--r-control) 0; background: color-mix(in srgb, var(--nexus) 7%, var(--ink-surface)); color: var(--text-mid); font: 400 11.5px/1.5 var(--font-body); }
 .playbook-trainer__position-tray b { display: block; margin-bottom: 2px; color: var(--text-hi); font: 600 10px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
 
@@ -135,6 +146,7 @@
   .playbook-trainer__compare-row { grid-template-columns: 1fr; }
   .playbook-trainer__hud-stat { min-width: 0; flex: 1; padding: 2px 10px; }
   .playbook-trainer__card { padding: 22px 20px; }
+  .playbook-trainer__tool-palette > span { width: 100%; margin-bottom: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
