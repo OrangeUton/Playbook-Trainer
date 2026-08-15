@@ -169,10 +169,15 @@ const server = createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(result))
     } catch (error) {
+      if (res.headersSent || res.writableEnded) return
       res.writeHead(500, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: error.message }))
     }
   })
 })
+
+// A single bad or aborted request must never take the whole bridge down --
+// Xander relies on this running unattended in the background while using the app.
+process.on('uncaughtException', (error) => console.error('film-log-bridge: recovered from an unhandled error:', error.message))
 
 server.listen(PORT, '127.0.0.1', () => console.log(`Film Log analysis bridge listening on http://127.0.0.1:${PORT}`))
