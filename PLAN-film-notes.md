@@ -75,11 +75,17 @@ Not a separate build — Phase 1-2 with `subject: 'self'` (`context: 'practice'`
 
 A full visual/logo redesign of the whole app — his words, "we'll do that at the end when all the functions and everything are actually set up." Noted, not forgotten, not started.
 
-## Open questions — need real answers before Phase 3 gets built (Phase 1-2 don't depend on these)
+## Open questions — answered directly by Xander, 2026-08-15
 
-1. **The football-scout agent** — confirm the read: a new persistent `.claude/agents/football-scout.md` (or similar), with real football strategy/scouting knowledge and its own memory, not a one-shot generic dispatch. Is that the right shape?
-2. **"Multiple models, kind of diverse"** — does this mean a real multi-model round for game-plan drafting (e.g. the football-scout agent plus a second model as a cross-check, Equal-Twin-style), or is "diverse" more about not always defaulting to one model for other football-related tasks in general, with the game plan itself staying one agent's output? These are different builds.
-3. Anything about the recurring-issue detection's threshold — how close a match should count as "the same issue resurfacing" (same play only, or also same tag/similar wording)?
+1. **Agent roster and memory — answered.** Not one generic agent: a real small team, each with its own persistent memory ("I want to keep everything organized"), but sharing the same underlying football knowledge so they don't drift apart ("they need to... solve the same amount of knowledge, at least ask them"). Proposed roster, his own call to correct if this isn't the right shape:
+   - **Football Scout** — opponent analysis. Its own memory of what's been learned about specific opponents over the season.
+   - **Self-Improvement Coach** — Xander's own practice/game film. Its own memory of his recurring patterns over time.
+   - **Game Plan Coordinator** — the one that actually drafts the weekly plan, pulling from both of the above plus the shared knowledge base. This is the one that does the multi-model collaboration (below), since drafting the plan is the actual synthesis step, not the note-taking.
+   All three read the same shared football-strategy knowledge (research dispatched tonight, see below) rather than each re-deriving it, but keep separate memory for what's specific to their own job.
+2. **"Multi-model" for game-plan drafting — answered** (his "multimodal" was almost certainly dictation drift for "multi-model," matching what he said earlier in the same conversation about wanting it "diverse"). Real multi-model collaboration specifically at the Game Plan Coordinator step, not throughout every football task.
+3. **Recurring-issue matching threshold — answered, and it's a real theme-matching problem, not a simple play-lookup.** His own words: "it could be something about tackling, something about form, could be offense or defense, could just be keeping your leverage — there's tons of things, and I'll probably use similar words, so that could be one signal... if you're ever unsure, just ask me." So: match on theme/wording similarity across entries, not just shared play ID, and when the match is genuinely uncertain, surface it as a question rather than silently deciding either way.
+
+**Research dispatched, 2026-08-15 night:** a real, source-grounded football strategy knowledge base (coverages, why a defense picks one based on formation/personnel, real beater concepts per coverage, pre/post-snap reads) — this is what actually makes the Scout/Coordinator agents useful instead of generic, per his direct ask to "do all the research online." Landing in `research-football-strategy.md` in this same folder; the 3 agent files above get built once it's in and reviewed, not before.
 
 ## Build order
 
