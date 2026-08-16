@@ -73,6 +73,7 @@
 .playbook-trainer__card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--nexus), color-mix(in srgb, var(--nexus) 20%, transparent)); opacity: .75; }
 .playbook-trainer__card::after { content: ""; position: absolute; inset: 0; pointer-events: none; background-image: var(--grain); opacity: .5; }
 .playbook-trainer__card-name { margin: 0; color: var(--text-hi); font: 560 21px/1.3 var(--font-display); letter-spacing: -.005em; }
+.playbook-trainer__formation-label { margin: 0 0 -8px; color: var(--nexus); font: 600 10px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 .playbook-trainer__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -8px; }
 .playbook-trainer__tags i { padding: 3px 9px; border: 1px solid var(--hairline-hi); border-radius: 999px; color: var(--text-mid); background: color-mix(in srgb, var(--ink-surface) 70%, transparent); font: 600 10px var(--font-mono); font-style: normal; letter-spacing: .05em; }
 
