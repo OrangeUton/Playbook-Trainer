@@ -28,6 +28,16 @@ const AGENT_CLAUDE_CONFIG_DIR = path.join(process.env.USERPROFILE || '', '.claud
 const AGENT_SETTINGS_PATH = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus\\scripts\\football-agent-settings.json'
 const AGENT_SESSIONS_FILE = path.join(PROJECT_ROOT, 'scripts', '.agent-chat-sessions.json')
 const VALID_AGENTS = ['football-scout', 'self-improvement-coach', 'game-plan-coordinator']
+// The --agents inline-JSON fast path below only carries {description, prompt} -- it drops the real
+// .md file's `memory: project` frontmatter, and this process runs with cwd: PROJECT_ROOT (Football),
+// not the nexus dir the native memory folder actually lives under. So Claude Code's own memory
+// mechanism never engages here. Fixed by hand instead of chasing the native mechanism: these agents
+// already have Write tool access, so just tell each one its own memory file's real absolute path,
+// hand it whatever's in there now, and ask it to update the file itself if something's worth keeping.
+const AGENT_MEMORY_DIR = path.join(NEXUS_DIR, '.claude', 'agent-memory')
+async function readAgentMemory(agentName) {
+  try { return await readFile(path.join(AGENT_MEMORY_DIR, agentName, 'MEMORY.md'), 'utf8') } catch { return '' }
+}
 
 function entryRevisionHash(entries) { return createHash('sha256').update(JSON.stringify(entries.map((e) => [e.id, e.body, e.tags, e.situation]))).digest('hex').slice(0, 16) }
 
@@ -137,7 +147,8 @@ async function loadAgentDefinition(agentName) {
   if (!match) throw new Error(`Could not parse agent definition for ${agentName}`)
   const frontmatter = match[1], prompt = match[2].trim()
   const field = (name) => { const line = frontmatter.match(new RegExp(`^${name}:\\s*(.+)$`, 'm')); return line ? line[1].trim().replace(/^"(.*)"$/, '$1') : null }
-  const definition = { description: field('description') || agentName, prompt, model: field('model') || 'sonnet' }
+  const toolsField = field('tools')
+  const definition = { description: field('description') || agentName, prompt, model: field('model') || 'sonnet', tools: toolsField ? toolsField.split(',').map((t) => t.trim()) : undefined }
   agentDefinitionCache[agentName] = definition
   return definition
 }
@@ -167,8 +178,17 @@ async function askAgent(agentName, message) {
   const sessions = await loadAgentSessions()
   const isNew = !sessions[agentName]
   const sessionId = sessions[agentName] || randomUUID()
-  const agentsJson = JSON.stringify({ [agentName]: { description: definition.description, prompt: definition.prompt } })
-  const prompt = `Use the ${agentName} agent (the Agent tool, subagent_type: "${agentName}") to respond to this message from Xander, sent from the Football app's chat panel. This is a real-time chat reply, not a formal deliverable -- reply directly and concisely, no Recap/Body/Routing/Flags/Next structure, no headers, just answer the question the way a coach would text back. Message: ${message}`
+  const agentsJson = JSON.stringify({ [agentName]: { description: definition.description, prompt: definition.prompt, ...(definition.tools ? { tools: definition.tools } : {}) } })
+  const memoryPath = path.join(AGENT_MEMORY_DIR, agentName, 'MEMORY.md')
+  const memory = await readAgentMemory(agentName)
+  const prompt = `Use the ${agentName} agent (the Agent tool, subagent_type: "${agentName}") to respond to this message from Xander, sent from the Football app's chat panel. This is a real-time chat reply, not a formal deliverable -- reply directly and concisely, no Recap/Body/Routing/Flags/Next structure, no headers, just answer the question the way a coach would text back.
+
+Your persistent memory file is at ${memoryPath} -- this chat path doesn't get it loaded automatically, so read what's below instead of re-reading the file, and if you learn something worth remembering for next time (a new opponent tendency, a recurring pattern, a decision Xander made), use the Write tool to update that exact file path before you finish, keeping what's still true from below.
+
+Current memory file contents (empty if nothing saved yet):
+${memory || '(empty -- nothing saved yet)'}
+
+Message: ${message}`
   const reply = await runClaude(prompt, sessionId, isNew, agentsJson, definition.model)
   if (isNew) { sessions[agentName] = sessionId; await saveAgentSessions(sessions) }
   return reply
