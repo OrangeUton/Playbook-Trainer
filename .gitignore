@@ -4,3 +4,4 @@ dist
 .kimi-*
 scripts/.agent-chat-sessions.json
 film-log/
+.claude/agents/

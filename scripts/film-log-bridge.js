@@ -4,7 +4,7 @@
 // film notes. Everything else (tendency counts, play matching) stays pure client-side.
 // Start with: node scripts/film-log-bridge.js
 import { createServer } from 'node:http'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
@@ -28,15 +28,21 @@ const AGENT_CLAUDE_CONFIG_DIR = path.join(process.env.USERPROFILE || '', '.claud
 const AGENT_SETTINGS_PATH = 'C:\\Users\\Xander\\OneDrive\\Hermes Agent\\nexus\\scripts\\football-agent-settings.json'
 const AGENT_SESSIONS_FILE = path.join(PROJECT_ROOT, 'scripts', '.agent-chat-sessions.json')
 const VALID_AGENTS = ['football-scout', 'self-improvement-coach', 'game-plan-coordinator']
-// The --agents inline-JSON fast path below only carries {description, prompt} -- it drops the real
-// .md file's `memory: project` frontmatter, and this process runs with cwd: PROJECT_ROOT (Football),
-// not the nexus dir the native memory folder actually lives under. So Claude Code's own memory
-// mechanism never engages here. Fixed by hand instead of chasing the native mechanism: these agents
-// already have Write tool access, so just tell each one its own memory file's real absolute path,
-// hand it whatever's in there now, and ask it to update the file itself if something's worth keeping.
-const AGENT_MEMORY_DIR = path.join(NEXUS_DIR, '.claude', 'agent-memory')
-async function readAgentMemory(agentName) {
-  try { return await readFile(path.join(AGENT_MEMORY_DIR, agentName, 'MEMORY.md'), 'utf8') } catch { return '' }
+// Real fix, found live 2026-08-15/16: the earlier inline --agents-JSON fast path ran the agent as a
+// nested Task dispatch inside a throwaway top-level session -- that dropped the real .md file's
+// `memory: project` frontmatter entirely, and separately, nested dispatches under --permission-mode
+// dontAsk deny Write by default even when the top-level session has it allow-listed (confirmed live:
+// football-scout's own memory-write attempts were silently blocked). The actual fix is structural,
+// not another workaround: mirror each agent's real .md file into this project's own .claude/agents/
+// (kept in sync from the real nexus source below) and run the CLI's own --agent flag directly, no
+// nested dispatch at all. Confirmed live: this is both faster (7-9s, no orchestrator hop) AND gives
+// real native memory read+write for free -- a fresh session with a new session-id correctly recalled
+// what an earlier, separate session wrote. Memory now lives in this project's own
+// .claude/agent-memory/<agent>/, which is arguably more correct anyway: it's Football-specific data.
+const LOCAL_AGENTS_DIR = path.join(PROJECT_ROOT, '.claude', 'agents')
+async function syncAgentFile(agentName) {
+  await mkdir(LOCAL_AGENTS_DIR, { recursive: true })
+  await copyFile(path.join(NEXUS_DIR, '.claude', 'agents', `${agentName}.md`), path.join(LOCAL_AGENTS_DIR, `${agentName}.md`))
 }
 
 function entryRevisionHash(entries) { return createHash('sha256').update(JSON.stringify(entries.map((e) => [e.id, e.body, e.tags, e.situation]))).digest('hex').slice(0, 16) }
@@ -129,39 +135,15 @@ async function analyzeSession(sessionId, triggeredBy = 'manual') {
 async function loadAgentSessions() { try { return JSON.parse(await readFile(AGENT_SESSIONS_FILE, 'utf8')) } catch { return {} } }
 async function saveAgentSessions(sessions) { await writeFile(AGENT_SESSIONS_FILE, JSON.stringify(sessions, null, 2)) }
 
-// Real fix, found live: replies were taking 90+ seconds to 2 minutes -- traced to running from the
-// nexus project directory, which loads its own large CLAUDE.md import chain and fires its full
-// SessionStart/UserPromptSubmit/Stop hook chain (several PowerShell processes plus at least one
-// hook that can trigger a real synchronous Codex dispatch of its own) on every single headless
-// call, none of which has anything to do with a football-scout chat reply. --bare mode would skip
-// all of that but requires switching off the existing subscription auth onto a billed API key,
-// which is off the table. The real fix: read the agent's own real .claude/agents/<name>.md
-// definition directly and pass it via the CLI's own --agents flag, then run from this Football
-// project's own folder instead of nexus's -- no .claude/settings.json here at all, so none of that
-// hook chain or CLAUDE.md loading ever fires, while the agent still behaves exactly as defined.
-const agentDefinitionCache = {}
-async function loadAgentDefinition(agentName) {
-  if (agentDefinitionCache[agentName]) return agentDefinitionCache[agentName]
-  const raw = await readFile(path.join(NEXUS_DIR, '.claude', 'agents', `${agentName}.md`), 'utf8')
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
-  if (!match) throw new Error(`Could not parse agent definition for ${agentName}`)
-  const frontmatter = match[1], prompt = match[2].trim()
-  const field = (name) => { const line = frontmatter.match(new RegExp(`^${name}:\\s*(.+)$`, 'm')); return line ? line[1].trim().replace(/^"(.*)"$/, '$1') : null }
-  const toolsField = field('tools')
-  const definition = { description: field('description') || agentName, prompt, model: field('model') || 'sonnet', tools: toolsField ? toolsField.split(',').map((t) => t.trim()) : undefined }
-  agentDefinitionCache[agentName] = definition
-  return definition
-}
-
 // A real, ongoing conversation with a named Claude subagent -- not a one-shot Codex call. Xander's
 // own ask: talk to Nick and the other agents from inside the app, no terminal required. Mirrors the
 // exact `claude -p --session-id`/`--resume` pattern already proven by this project's own
-// telegram-bridge.js, just spawning `claude` instead of Codex, and always run from the nexus
-// project folder since that's where these agents' .claude/agents/*.md definitions live.
-function runClaude(prompt, sessionId, isNew, agentsJson, model) {
+// telegram-bridge.js, just spawning `claude` instead of Codex, running as the agent directly via
+// --agent (see the syncAgentFile comment above for why) instead of nexus's own heavier project dir.
+function runClaude(prompt, sessionId, isNew, agentName) {
   return new Promise((resolve, reject) => {
     const continuityArgs = isNew ? ['--session-id', sessionId] : ['--resume', sessionId]
-    const args = ['-p', prompt, '--permission-mode', 'dontAsk', '--settings', AGENT_SETTINGS_PATH, '--model', model || 'sonnet', ...(agentsJson ? ['--agents', agentsJson] : []), ...continuityArgs]
+    const args = ['-p', prompt, '--agent', agentName, '--permission-mode', 'dontAsk', '--settings', AGENT_SETTINGS_PATH, ...continuityArgs]
     const child = spawn('claude', args, { cwd: PROJECT_ROOT, shell: false, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_CONFIG_DIR: AGENT_CLAUDE_CONFIG_DIR } })
     let output = '', settled = false
     const timer = setTimeout(() => { if (settled) return; settled = true; child.kill(); reject(new Error('Agent did not respond within 10 minutes.')) }, 600000)
@@ -174,22 +156,14 @@ function runClaude(prompt, sessionId, isNew, agentsJson, model) {
 
 async function askAgent(agentName, message) {
   if (!VALID_AGENTS.includes(agentName)) throw new Error(`Unknown agent: ${agentName}`)
-  const definition = await loadAgentDefinition(agentName)
+  await syncAgentFile(agentName)
   const sessions = await loadAgentSessions()
   const isNew = !sessions[agentName]
   const sessionId = sessions[agentName] || randomUUID()
-  const agentsJson = JSON.stringify({ [agentName]: { description: definition.description, prompt: definition.prompt, ...(definition.tools ? { tools: definition.tools } : {}) } })
-  const memoryPath = path.join(AGENT_MEMORY_DIR, agentName, 'MEMORY.md')
-  const memory = await readAgentMemory(agentName)
-  const prompt = `Use the ${agentName} agent (the Agent tool, subagent_type: "${agentName}") to respond to this message from Xander, sent from the Football app's chat panel. This is a real-time chat reply, not a formal deliverable -- reply directly and concisely, no Recap/Body/Routing/Flags/Next structure, no headers, just answer the question the way a coach would text back.
-
-Your persistent memory file is at ${memoryPath} -- this chat path doesn't get it loaded automatically, so read what's below instead of re-reading the file, and if you learn something worth remembering for next time (a new opponent tendency, a recurring pattern, a decision Xander made), use the Write tool to update that exact file path before you finish, keeping what's still true from below.
-
-Current memory file contents (empty if nothing saved yet):
-${memory || '(empty -- nothing saved yet)'}
+  const prompt = `This is a real-time chat reply from the Football app's chat panel, not a formal deliverable -- reply directly and concisely, no Recap/Body/Routing/Flags/Next structure, no headers, just answer the way a coach would text back.
 
 Message: ${message}`
-  const reply = await runClaude(prompt, sessionId, isNew, agentsJson, definition.model)
+  const reply = await runClaude(prompt, sessionId, isNew, agentName)
   if (isNew) { sessions[agentName] = sessionId; await saveAgentSessions(sessions) }
   return reply
 }
