@@ -105,6 +105,9 @@
 .playbook-trainer__draw-hint-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .playbook-trainer__snap-toggle { display: flex; align-items: center; gap: 6px; color: var(--text-low); font: 600 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
 .playbook-trainer__snap-toggle input { accent-color: var(--nexus); }
+.playbook-trainer__timer { margin: -6px 0 0; color: var(--text-hi); font: 700 15px var(--font-mono); font-variant-numeric: tabular-nums; }
+.playbook-trainer__timer small { color: var(--text-low); font: 600 10px var(--font-mono); letter-spacing: .04em; text-transform: none; margin-left: 4px; }
+.playbook-trainer__timeout-note { margin: 0; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--danger) 55%, var(--hairline-hi)); border-radius: var(--r-control); background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--text-hi); font: 400 12.5px/1.5 var(--font-body); }
 .playbook-trainer__draw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .playbook-trainer__compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .playbook-trainer__compare-label { display: block; margin-bottom: 7px; color: var(--text-low); font: 600 10px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
