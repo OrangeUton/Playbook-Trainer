@@ -102,6 +102,9 @@
 
 /* ---------- Draw tab ---------- */
 .playbook-trainer__draw-hint { margin: 0; color: var(--text-mid); font: 400 12.5px var(--font-body); }
+.playbook-trainer__draw-hint-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.playbook-trainer__snap-toggle { display: flex; align-items: center; gap: 6px; color: var(--text-low); font: 600 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; white-space: nowrap; }
+.playbook-trainer__snap-toggle input { accent-color: var(--nexus); }
 .playbook-trainer__draw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .playbook-trainer__compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .playbook-trainer__compare-label { display: block; margin-bottom: 7px; color: var(--text-low); font: 600 10px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
@@ -144,6 +147,7 @@
 .playbook-trainer__bubble--ol_lt, .playbook-trainer__bubble--ol_lg, .playbook-trainer__bubble--ol_rg, .playbook-trainer__bubble--ol_rt { fill: color-mix(in srgb, var(--ok) 24%, var(--ink-surface)); stroke: color-mix(in srgb, var(--ok) 75%, var(--ink-surface)); }
 .playbook-trainer__bubble.is-editable { cursor: grab; touch-action: none; filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--deck-well) 70%, transparent)); }
 .playbook-trainer__bubble.is-editable:hover { stroke: var(--nexus); filter: drop-shadow(0 4px 8px color-mix(in srgb, var(--deck-well) 80%, transparent)) drop-shadow(0 0 6px color-mix(in srgb, var(--nexus) 45%, transparent)); }
+.playbook-trainer__diagram.is-drawing .playbook-trainer__bubble { pointer-events: none; }
 .playbook-trainer__bubble.is-editable:active { cursor: grabbing; }
 .playbook-trainer__snap { fill: var(--text-hi); stroke: var(--nexus); stroke-width: 3; pointer-events: none; animation: playbook-trainer-snap 900ms var(--ease-std) infinite; }
 .playbook-trainer__connection { fill: var(--live); stroke: var(--ink-surface); stroke-width: 1.5; pointer-events: none; opacity: .9; }
