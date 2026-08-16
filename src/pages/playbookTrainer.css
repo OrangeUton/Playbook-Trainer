@@ -142,7 +142,8 @@
 .playbook-trainer__route.is-active { fill-opacity: .72; }
 .playbook-trainer__arrowhead { fill: var(--live); }
 .playbook-trainer__bubble { fill: var(--ink-surface2); stroke: color-mix(in srgb, var(--text-hi) 85%, transparent); stroke-width: 2; transition: filter var(--motion-fast), stroke var(--motion-fast); }
-.playbook-trainer__bubble text { fill: var(--text-hi); stroke: none; text-anchor: middle; font: 700 10px var(--font-mono); pointer-events: none; }
+.playbook-trainer__bubble text { fill: var(--text-hi); stroke: none; text-anchor: middle; font: 700 10px var(--font-mono); pointer-events: none; user-select: none; }
+.playbook-trainer__diagram { user-select: none; -webkit-user-select: none; touch-action: none; }
 .playbook-trainer__bubble--qb { fill: color-mix(in srgb, var(--nexus) 42%, var(--ink-surface)); stroke: color-mix(in srgb, var(--nexus) 85%, var(--text-hi)); }
 .playbook-trainer__bubble--ol_lt, .playbook-trainer__bubble--ol_lg, .playbook-trainer__bubble--ol_rg, .playbook-trainer__bubble--ol_rt { fill: color-mix(in srgb, var(--ok) 24%, var(--ink-surface)); stroke: color-mix(in srgb, var(--ok) 75%, var(--ink-surface)); }
 .playbook-trainer__bubble.is-editable { cursor: grab; touch-action: none; filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--deck-well) 70%, transparent)); }
