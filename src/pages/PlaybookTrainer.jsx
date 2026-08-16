@@ -80,8 +80,15 @@ function DiagramSvg({ diagram, editable = false, onChange, tool = 'freehand', sn
     }
     const line = activeLineRef.current
     if (!line) return
+    // Freehand points are pixel samples along the actual stroke -- snapping every one of them
+    // to the nearest bubble/endpoint (like a straight line's live endpoint correctly does) made
+    // the stroke visibly stick to a bubble for several samples any time it passed within
+    // SNAP_DISTANCE, since the same nearby point kept winning. Only the real start (startDraw)
+    // and the final released point (stop) snap for freehand now; the path in between follows the
+    // cursor exactly.
+    if (line.tool === 'freehand') { setWorkingLine({ ...line, points: [...line.points, raw] }); return }
     const p = snapPoint(raw)
-    setWorkingLine({ ...line, points: line.tool === 'freehand' ? [...line.points, p] : [line.points[0], p] })
+    setWorkingLine({ ...line, points: [line.points[0], p] })
   }
   const stop = (e) => {
     if (drag.current) { drag.current = null; setFormationSnap(null) }
