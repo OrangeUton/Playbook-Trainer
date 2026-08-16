@@ -3,3 +3,4 @@ dist
 .codex-*
 .kimi-*
 scripts/.agent-chat-sessions.json
+film-log/
