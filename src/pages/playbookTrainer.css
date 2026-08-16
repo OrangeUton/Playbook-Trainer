@@ -186,6 +186,26 @@
 .playbook-trainer__manage-row-name { color: var(--text-hi); font: 500 13.5px var(--font-body); }
 .playbook-trainer__manage-row-box { padding: 2px 9px; border: 1px solid var(--hairline-hi); border-radius: 999px; color: var(--text-mid); font: 600 10px var(--font-mono); letter-spacing: .05em; }
 .playbook-trainer__manage-row-tags { color: var(--text-mid); font: 500 11px var(--font-mono); }
+
+/* ---------- Stats tab ---------- */
+.playbook-trainer__stats { display: grid; gap: 22px; }
+.playbook-trainer__stats-section { display: grid; gap: 10px; }
+.playbook-trainer__panel-heading { display: flex; align-items: baseline; gap: 10px; }
+.playbook-trainer__panel-heading span { color: var(--text-low); font: 600 11px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.playbook-trainer__panel-heading small { color: var(--text-mid); font: 400 12px var(--font-body); }
+.playbook-trainer__stats-category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.playbook-trainer__stats-category { display: grid; gap: 3px; padding: 14px 16px; border: 1px solid var(--hairline-hi); border-radius: var(--r-control); background: var(--ink-surface2); }
+.playbook-trainer__stats-category b { color: var(--text-low); font: 600 10px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.playbook-trainer__stats-category span { color: var(--text-hi); font: 700 22px var(--font-mono); font-variant-numeric: tabular-nums; }
+.playbook-trainer__stats-category small { color: var(--text-mid); font: 400 11px var(--font-body); }
+.playbook-trainer__stats-card { padding: 12px 16px; border-radius: var(--r-control); background: var(--ink-surface2); margin-bottom: 8px; }
+.playbook-trainer__stats-card-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.playbook-trainer__stats-card-heading b { color: var(--text-hi); font: 500 13.5px var(--font-body); }
+.playbook-trainer__stats-card-heading small { color: var(--text-mid); font: 500 11px var(--font-mono); }
+.playbook-trainer__stats-note { margin: 8px 0 0; padding: 8px 12px; border-left: 2px solid var(--hairline-hi); color: var(--text-mid); font: 400 12.5px/1.5 var(--font-body); }
+.playbook-trainer__stats-note.is-miss { border-left-color: var(--danger); color: var(--text-hi); }
+.playbook-trainer__stats-note i { color: var(--text-low); font: 600 10px var(--font-mono); font-style: normal; text-transform: uppercase; letter-spacing: .04em; margin-left: 6px; }
+.playbook-trainer__note-field input { width: 100%; }
 .playbook-trainer__manage-row-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 /* ---------- Card form ---------- */
