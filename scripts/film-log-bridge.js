@@ -58,10 +58,10 @@ Extract structured situation data from this single football film note. The note 
 Note: "${text}"
 
 Respond with ONLY a JSON object between the markers below, no other text. Use null for anything not mentioned or not confidently inferable -- do not guess. Fields:
-{"down": 1-4 or null, "distance": number of yards or null, "quarter": 1-4 or null, "personnel": e.g. "11" or null, "coverage": e.g. "Cover 2" or null, "fieldOrBoundary": "field"|"boundary"|null, "formation": the formation name mentioned or null, "front": defensive front if mentioned or null, "result": brief outcome e.g. "incomplete", "15 yard gain" or null, "playType": "run"|"pass"|null}
+{"down": 1-4 or null, "distance": number of yards or null, "quarter": 1-4 or null, "personnel": e.g. "11" or null, "coverage": e.g. "Cover 2" or null, "fieldOrBoundary": "field"|"boundary"|null, "formation": the formation name mentioned or null, "front": defensive front if mentioned or null, "result": brief outcome e.g. "incomplete", "15 yard gain" or null, "playType": "run"|"pass"|null, "hash": "left"|"middle"|"right"|null, "qbDetail": e.g. "rolled right, threw to flat" or "play action, deep left" or null}
 
 ===JSON_START===
-{"down": null, "distance": null, "quarter": null, "personnel": null, "coverage": null, "fieldOrBoundary": null, "formation": null, "front": null, "result": null, "playType": null}
+{"down": null, "distance": null, "quarter": null, "personnel": null, "coverage": null, "fieldOrBoundary": null, "formation": null, "front": null, "result": null, "playType": null, "hash": null, "qbDetail": null}
 ===JSON_END===`
 }
 
