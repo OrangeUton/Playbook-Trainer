@@ -845,8 +845,16 @@ function DrawTab({ deck, category, session, gradeAndAdvance, dayStreak }) {
     [deck, category],
   );
   const drawPool = useMemo(
-    () => pool.filter((c) => normalDiagram(c.answerDiagram) && !c.drawHidden),
-    [pool],
+    () =>
+      pool.filter((c) => {
+        if (!normalDiagram(c.answerDiagram) || c.drawHidden) return false;
+        // A concept/full-field card tied to a specific formation (e.g. "Flood" paired with
+        // Bunch Left) is only drawable while that formation is itself visible in Draw --
+        // hiding the formation was silently doing nothing for the harder cards built on it.
+        const pairedFormation = formationFor(c, deck);
+        return !pairedFormation?.drawHidden;
+      }),
+    [pool, deck],
   );
   const missingDiagramCount = useMemo(
     () => pool.filter((c) => !normalDiagram(c.answerDiagram)).length,
