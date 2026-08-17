@@ -9,6 +9,7 @@ import {
   listWeeks,
   deleteWeek,
 } from "../lib/filmLogStorage";
+import { DOWN_NAME, computeTendencies } from "../lib/filmLogTendencies";
 import "./filmLogLibrary.css";
 
 function Screenshot({ screenshot }) {
@@ -68,46 +69,8 @@ const COACHES = [
 // Fast, deterministic, no AI wait -- a glance-able counterpart to asking a coach, not a replacement
 // for one. Real sample-size discipline throughout: every number shows its own real N, no fraction
 // or "tends to" claim stands alone, and a by-down pattern only surfaces at 3+ logged reps for that
-// down, same bar football-scout itself uses.
-function tally(entries, key) {
-  const counts = new Map();
-  for (const entry of entries) {
-    const value = entry.situation?.[key];
-    if (!value) continue;
-    counts.set(value, (counts.get(value) || 0) + 1);
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-}
-function byDownPattern(entries, key) {
-  const result = [];
-  for (let down = 1; down <= 4; down++) {
-    const atDown = entries.filter((entry) => entry.situation?.down === down);
-    if (atDown.length < 3) continue;
-    const counts = tally(atDown, key);
-    if (counts.length)
-      result.push({ down, total: atDown.length, top: counts[0] });
-  }
-  return result;
-}
-function computeTendencies(sessions) {
-  const entries = sessions
-    .filter((session) => session.subject === "opponent")
-    .flatMap((session) => session.entries || []);
-  const offense = entries.filter((entry) => entry.unit === "offense"),
-    defense = entries.filter((entry) => entry.unit === "defense");
-  return {
-    offenseCount: offense.length,
-    defenseCount: defense.length,
-    playType: tally(offense, "playType"),
-    formation: tally(offense, "formation").slice(0, 5),
-    personnel: tally(offense, "personnel").slice(0, 5),
-    offenseByDown: byDownPattern(offense, "playType"),
-    coverage: tally(defense, "coverage").slice(0, 5),
-    front: tally(defense, "front").slice(0, 5),
-    defenseByDown: byDownPattern(defense, "coverage"),
-  };
-}
-const DOWN_NAME = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
+// down, same bar football-scout itself uses. tally/byDownPattern/computeTendencies now live in
+// ../lib/filmLogTendencies so FilmLog.jsx's single-session summary can reuse the exact same logic.
 function TallyRow({ label, list, total }) {
   return list.length ? (
     <p className="library__tendency-row">
