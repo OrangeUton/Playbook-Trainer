@@ -38,6 +38,34 @@ function sessionLabel(session) {
     ? `vs ${session.opponentName || "Opponent"}`
     : `Self · ${session.context || "Film"}`;
 }
+// Compact list of logged situation values for one entry, skipping anything not actually filled
+// in -- down+distance collapse into one "1st & 10" tag using the same DOWN_NAME map used
+// everywhere else, the rest render as-is in logging order.
+function situationTags(situation) {
+  if (!situation) return [];
+  const tags = [];
+  if (situation.down != null && situation.down !== "") {
+    const downLabel = DOWN_NAME[situation.down] || situation.down;
+    tags.push(
+      situation.distance != null && situation.distance !== ""
+        ? `${downLabel} & ${situation.distance}`
+        : `${downLabel} down`,
+    );
+  } else if (situation.distance != null && situation.distance !== "") {
+    tags.push(`& ${situation.distance}`);
+  }
+  if (situation.quarter) tags.push(`Q${situation.quarter}`);
+  if (situation.formation) tags.push(situation.formation);
+  if (situation.playType) tags.push(situation.playType);
+  if (situation.personnel) tags.push(situation.personnel);
+  if (situation.coverage) tags.push(situation.coverage);
+  if (situation.front) tags.push(situation.front);
+  if (situation.fieldOrBoundary) tags.push(situation.fieldOrBoundary);
+  if (situation.hash) tags.push(`${situation.hash} hash`);
+  if (situation.result) tags.push(situation.result);
+  if (situation.qbDetail) tags.push(situation.qbDetail);
+  return tags;
+}
 function resultSessionLabel(session) {
   return [
     session.week || "No week set",
@@ -1098,35 +1126,47 @@ export default function FilmLogLibrary() {
                                 No notes in this session.
                               </p>
                             ) : (
-                              (session.entries || []).map((entry) => (
-                                <article
-                                  className="library__entry"
-                                  key={entry.id}
-                                >
-                                  {entry.screenshots?.[0] && (
-                                    <Screenshot
-                                      screenshot={entry.screenshots[0]}
-                                    />
-                                  )}
-                                  <div>
-                                    <div className="library__entry-meta">
-                                      <i>{entry.unit || "self"}</i>
-                                      <small>
-                                        {entry.playNameSnapshot ||
-                                          "not matched"}
-                                      </small>
-                                    </div>
-                                    <p>{entry.body}</p>
-                                    {entry.tags?.length > 0 && (
-                                      <div className="library__tags">
-                                        {entry.tags.map((tag) => (
-                                          <span key={tag}>{tag}</span>
-                                        ))}
-                                      </div>
+                              (session.entries || []).map((entry) => {
+                                const context = situationTags(
+                                  entry.situation,
+                                );
+                                return (
+                                  <article
+                                    className="library__entry"
+                                    key={entry.id}
+                                  >
+                                    {entry.screenshots?.[0] && (
+                                      <Screenshot
+                                        screenshot={entry.screenshots[0]}
+                                      />
                                     )}
-                                  </div>
-                                </article>
-                              ))
+                                    <div>
+                                      <div className="library__entry-meta">
+                                        <i>{entry.unit || "self"}</i>
+                                        <small>
+                                          {entry.playNameSnapshot ||
+                                            "not matched"}
+                                        </small>
+                                      </div>
+                                      {context.length > 0 && (
+                                        <div className="library__tags">
+                                          {context.map((tag, i) => (
+                                            <span key={i}>{tag}</span>
+                                          ))}
+                                        </div>
+                                      )}
+                                      <p>{entry.body}</p>
+                                      {entry.tags?.length > 0 && (
+                                        <div className="library__tags">
+                                          {entry.tags.map((tag) => (
+                                            <span key={tag}>{tag}</span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </article>
+                                );
+                              })
                             )}
                           </div>
                         )}

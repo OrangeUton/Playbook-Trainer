@@ -217,6 +217,8 @@
   display: grid;
   gap: 10px;
   padding: 4px 14px 14px;
+  max-height: 520px;
+  overflow-y: auto;
 }
 .library__entry {
   padding: 12px;
@@ -606,16 +608,16 @@
   word-break: break-word;
 }
 
-/* Tendencies -- flat surface, no left rail. */
+/* Tendencies -- same flat-card treatment as .library__session (radius, background, no separate
+   border) so this reads as part of the same accordion list instead of a bolted-on block. */
 .library__tendencies {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 0 2px 8px;
+  margin: 0;
   padding: 14px 16px;
-  border: 1px solid var(--hairline-hi);
-  border-radius: var(--radius-panel);
-  background: color-mix(in srgb, var(--ink-surface) 70%, transparent);
+  border-radius: 6px;
+  background: var(--ink-surface2);
 }
 .library__tendencies-col h3 {
   margin: 0 0 10px;
