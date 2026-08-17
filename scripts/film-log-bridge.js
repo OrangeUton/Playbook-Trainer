@@ -4,7 +4,7 @@
 // film notes. Everything else (tendency counts, play matching) stays pure client-side.
 // Start with: node scripts/film-log-bridge.js
 import { createServer } from 'node:http'
-import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, copyFile, readdir } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import path from 'node:path'
@@ -43,6 +43,24 @@ const LOCAL_AGENTS_DIR = path.join(PROJECT_ROOT, '.claude', 'agents')
 async function syncAgentFile(agentName) {
   await mkdir(LOCAL_AGENTS_DIR, { recursive: true })
   await copyFile(path.join(NEXUS_DIR, '.claude', 'agents', `${agentName}.md`), path.join(LOCAL_AGENTS_DIR, `${agentName}.md`))
+}
+
+// Read-only: real memory files an agent has actually written for itself, same directory
+// syncAgentFile's own comment above points at (.claude/agent-memory/<agent>/*.md). No agent
+// action can reach this path -- it's a GET-shaped read for the chat UI's "What I know" panel,
+// never a write.
+const AGENT_MEMORY_DIR = path.join(PROJECT_ROOT, '.claude', 'agent-memory')
+async function readAgentMemory(agentName) {
+  if (!VALID_AGENTS.includes(agentName)) throw new Error(`Unknown agent: ${agentName}`)
+  const dir = path.join(AGENT_MEMORY_DIR, agentName)
+  const names = await readdir(dir).catch(() => [])
+  const files = []
+  for (const name of names) {
+    if (!name.endsWith('.md')) continue
+    try { files.push({ filename: name, content: await readFile(path.join(dir, name), 'utf8') }) } catch { /* skip unreadable memory file */ }
+  }
+  files.sort((a, b) => (a.filename === 'MEMORY.md' ? -1 : b.filename === 'MEMORY.md' ? 1 : a.filename.localeCompare(b.filename)))
+  return { files }
 }
 
 function entryRevisionHash(entries) { return createHash('sha256').update(JSON.stringify(entries.map((e) => [e.id, e.body, e.tags, e.situation]))).digest('hex').slice(0, 16) }
@@ -169,7 +187,6 @@ Message: ${message}`
 }
 
 async function listAllSessions() {
-  const { readdir } = await import('node:fs/promises')
   const names = await readdir(SESSIONS_DIR).catch(() => [])
   const sessions = []
   for (const name of names) { if (!name.endsWith('.json')) continue; try { sessions.push(JSON.parse(await readFile(path.join(SESSIONS_DIR, name), 'utf8'))) } catch { /* skip unreadable session files */ } }
@@ -207,7 +224,7 @@ const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
-  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes', '/ask-agent'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
+  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes', '/ask-agent', '/agent-memory'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
   let body = ''
   req.on('data', (chunk) => { body += chunk })
   req.on('end', async () => {
@@ -218,6 +235,14 @@ const server = createServer((req, res) => {
         const reply = await askAgent(agent, message.trim())
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ reply }))
+        return
+      }
+      if (req.url === '/agent-memory') {
+        const { agent } = JSON.parse(body || '{}')
+        if (!agent) throw new Error('agent is required')
+        const result = await readAgentMemory(agent)
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify(result))
         return
       }
       if (req.url === '/search-notes') {

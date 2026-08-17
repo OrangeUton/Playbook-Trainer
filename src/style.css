@@ -1,42 +1,129 @@
-@font-face { font-family: 'Space Grotesk'; src: url('./assets/fonts/SpaceGrotesk-Variable.woff2') format('woff2'); font-weight: 300 700; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Martian Mono'; src: url('./assets/fonts/MartianMono-Variable.woff2') format('woff2'); font-weight: 100 800; font-style: normal; font-display: swap; }
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("./assets/fonts/SpaceGrotesk-Variable.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Martian Mono";
+  src: url("./assets/fonts/MartianMono-Variable.woff2") format("woff2");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
 
-/* Single fixed theme (Nexus's "Instrument at Night" tokens) -- no theme switcher, this is a
-   one-person tool, not a multi-theme dashboard. */
+/* Single fixed theme -- blue/black team identity. Near-black surfaces, one electric-blue accent
+   reserved for progress / CTAs / emphasis. Elevation is communicated by lighter surfaces, not
+   shadows. */
 :root {
-  --deck-well: #081016; --deck-face: #0E1A20; --deck-raised: #15262E; --deck-inset: #1D323B;
-  --rule: rgba(120, 168, 178, 0.14); --ink-hi: #F1ECDD; --ink-mid: #93A6A3; --ink-low: #5B706D;
-  --ink-canvas: var(--deck-well); --ink-surface: var(--deck-face); --ink-surface2: var(--deck-raised); --ink-surface3: var(--deck-inset);
-  --hairline: var(--rule); --hairline-hi: rgba(120, 168, 178, 0.26);
+  --deck-well: #090c11;
+  --deck-face: #0e1218;
+  --deck-raised: #141a23;
+  --deck-inset: #1b222d;
 
-  --text-hi: var(--ink-hi); --text-mid: var(--ink-mid); --text-low: var(--ink-low);
+  --rule: rgba(148, 166, 188, 0.14);
+  --hairline-hi: rgba(148, 166, 188, 0.24);
 
-  --live: #B592F0; --ok: #4FD98C; --warn: #B592F0; --danger: #FF4D6A; --nexus: var(--live);
+  --ink-hi: #eef1f5;
+  --ink-mid: #9ba8b8;
+  --ink-low: #5f6d7e;
 
-  /* Space Grotesk carries both display and body: it is loaded locally, has real character,
-     and the previous body font (Inter) was declared but never actually loaded. */
-  --font-display: "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
-  --font-body: "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
-  --font-mono: "Martian Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+  --ink-canvas: var(--deck-well);
+  --ink-surface: var(--deck-face);
+  --ink-surface2: var(--deck-raised);
+  --ink-surface3: var(--deck-inset);
+  --hairline: var(--rule);
+
+  --text-hi: var(--ink-hi);
+  --text-mid: var(--ink-mid);
+  --text-low: var(--ink-low);
+
+  --live: #146bf5;
+  --nexus: var(--live);
+  --ok: #2dd47a;
+  --warn: #ffb020;
+  --danger: #ff4d6a;
+
+  /* Display stays geometric; body gets a real system sans voice without adding a dependency. */
+  --font-display:
+    "Space Grotesk", ui-sans-serif, -apple-system, "Segoe UI", system-ui,
+    sans-serif;
+  --font-body: ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-mono:
+    "Martian Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas,
+    monospace;
 
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 420ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-std: cubic-bezier(0.4, 0, 0.2, 1);
-  /* Slight overshoot for selected/active states -- gives toggles a weighty, physical settle. */
   --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
 
-  --r-control: 2px; --r-card: 4px; --r-panel: 8px;
+  --radius-sharp: 2px;
+  --radius-control: 2px;
+  --radius-card: 4px;
+  --radius-panel: 6px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 4px 12px color-mix(in srgb, var(--deck-well) 70%, transparent);
+  --shadow-md: 0 12px 32px color-mix(in srgb, var(--deck-well) 78%, transparent);
+  --shadow-lg: 0 24px 60px color-mix(in srgb, var(--deck-well) 85%, transparent);
+  --shadow-inset: inset 0 1px 0
+    color-mix(in srgb, var(--ink-hi) 6%, transparent);
+
+  /* Field-room shell motif: faint horizontal yard-line stripes behind the app. */
+  --field-stripe: repeating-linear-gradient(
+    180deg,
+    transparent 0 60px,
+    rgba(148, 166, 188, 0.045) 60px 61px
+  );
+  /* Chalk-dust grain shared across tactile surfaces only. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.10'/%3E%3C/svg%3E");
 }
 
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; }
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
 body {
   margin: 0;
   color: var(--text-hi);
   background: var(--ink-canvas);
   font-family: var(--font-body);
-  letter-spacing: .002em;
+  letter-spacing: 0.002em;
 }
-#root { max-width: 880px; margin: 0 auto; padding: 24px; }
+#root {
+  position: relative;
+  min-height: 100%;
+}
+#root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: var(--field-stripe);
+  z-index: -1;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+::selection {
+  background: color-mix(in srgb, var(--nexus) 35%, transparent);
+  color: var(--text-hi);
+}
+
+/* Shared label class: one source of truth for the app's repeated uppercase mono labels.
+   Finding #5 -- replace hand-typed label rules with this class. */
+.label {
+  color: var(--text-mid);
+  font: 800 10px var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
