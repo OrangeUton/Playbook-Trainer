@@ -4,6 +4,12 @@
 // real N, no "tends to" claim below a 3-rep bar for that specific bucket.
 export const DOWN_NAME = { 1: '1st', 2: '2nd', 3: '3rd', 4: '4th' }
 
+// Lead with the percentage, keep the real N alongside it -- sample-size discipline stays visible,
+// it just isn't the only number shown anymore.
+export function pct(count, total) {
+  return total > 0 ? Math.round((count / total) * 100) : 0
+}
+
 export function tally(entries, key) {
   const counts = new Map()
   for (const entry of entries) {

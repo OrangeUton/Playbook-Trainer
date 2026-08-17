@@ -9,7 +9,7 @@ import {
   listWeeks,
   deleteWeek,
 } from "../lib/filmLogStorage";
-import { DOWN_NAME, computeTendencies } from "../lib/filmLogTendencies";
+import { DOWN_NAME, computeTendencies, pct } from "../lib/filmLogTendencies";
 import "./filmLogLibrary.css";
 
 function Screenshot({ screenshot }) {
@@ -77,7 +77,7 @@ function TallyRow({ label, list, total }) {
       <span>{label}</span>
       {list.map(([value, count]) => (
         <b key={value}>
-          {value} ({count}/{total})
+          {value} {pct(count, total)}% ({count}/{total})
         </b>
       ))}
     </p>
@@ -123,9 +123,26 @@ function WeekTendencies({ group }) {
               total={stats.offenseCount}
             />
             {stats.offenseByDown.map((d) => (
-              <p className="library__tendency-note" key={d.down}>
-                On {DOWN_NAME[d.down] || d.down} down, {d.top[0]} {d.top[1]} of{" "}
-                {d.total} logged times.
+              <p className="library__tendency-note" key={`down-${d.down}`}>
+                On {DOWN_NAME[d.down] || d.down} down, {d.top[0]}{" "}
+                {pct(d.top[1], d.total)}% ({d.top[1]} of {d.total} logged
+                times).
+              </p>
+            ))}
+            {stats.offenseByDownDistance.map((d) => (
+              <p
+                className="library__tendency-note"
+                key={`dd-${d.down}-${d.distance}`}
+              >
+                On {DOWN_NAME[d.down] || d.down} & {d.distance}, {d.top[0]}{" "}
+                {pct(d.top[1], d.total)}% ({d.top[1]} of {d.total} logged
+                times).
+              </p>
+            ))}
+            {stats.offenseByFormation.map((f) => (
+              <p className="library__tendency-note" key={`f-${f.formation}`}>
+                From {f.formation}, {f.top[0]} {pct(f.top[1], f.total)}% (
+                {f.top[1]} of {f.total} logged times).
               </p>
             ))}
           </>
@@ -150,9 +167,10 @@ function WeekTendencies({ group }) {
               total={stats.defenseCount}
             />
             {stats.defenseByDown.map((d) => (
-              <p className="library__tendency-note" key={d.down}>
-                On {DOWN_NAME[d.down] || d.down} down, {d.top[0]} {d.top[1]} of{" "}
-                {d.total} logged times.
+              <p className="library__tendency-note" key={`down-${d.down}`}>
+                On {DOWN_NAME[d.down] || d.down} down, {d.top[0]}{" "}
+                {pct(d.top[1], d.total)}% ({d.top[1]} of {d.total} logged
+                times).
               </p>
             ))}
           </>
@@ -953,7 +971,6 @@ export default function FilmLogLibrary() {
               )}
               {isOpen && (
                 <div className="library__week-sessions">
-                  {label !== "No week set" && <WeekTendencies group={group} />}
                   {group.sessions.length === 0 && (
                     <p className="library__empty">
                       No film sessions logged for this week yet.
@@ -979,7 +996,10 @@ export default function FilmLogLibrary() {
                         >
                           <div>
                             <b>{sessionLabel(session)}</b>
-                            <span>{session.filmDate || "No film date"}</span>
+                            <span>
+                              {session.filmDate || "No film date"}
+                              {session.doneAt ? " · Done" : ""}
+                            </span>
                           </div>
                           <small>
                             {session.entries?.length || 0}{" "}
@@ -1113,6 +1133,17 @@ export default function FilmLogLibrary() {
                       </div>
                     );
                   })}
+                  {label !== "No week set" && (
+                    <>
+                      <div className="library__panel-heading">
+                        <span className="label">Week tendencies</span>
+                        <small>
+                          Combined from every session logged for this week.
+                        </small>
+                      </div>
+                      <WeekTendencies group={group} />
+                    </>
+                  )}
                 </div>
               )}
             </div>

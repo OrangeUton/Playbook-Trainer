@@ -2307,7 +2307,11 @@ export default function PlaybookTrainerPage() {
           )}
           {tab === "stats" && <StatsTab deck={deck} />}
           {tab === "filmlog" && (
-            <FilmLog deck={deck} onActivity={recordDayActivity} />
+            <FilmLog
+              deck={deck}
+              onActivity={recordDayActivity}
+              onOpenLibrary={() => setTab("library")}
+            />
           )}
           {tab === "library" && <FilmLogLibrary />}
         </div>

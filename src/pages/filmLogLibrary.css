@@ -211,6 +211,31 @@
 .library__entry > div {
   min-width: 0;
 }
+/* Individual session notes were unstyled -- every entry ran into the next with no separation,
+   which read as "just a bunch of information" even though the data was there. */
+.library__entries {
+  display: grid;
+  gap: 10px;
+  padding: 4px 14px 14px;
+}
+.library__entry {
+  padding: 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--ink-surface) 55%, transparent);
+}
+.library__entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.library__entry p {
+  margin: 0;
+  color: var(--text-hi);
+  font: 400 13px/1.55 var(--font-body);
+  white-space: pre-wrap;
+}
 .library__result-entry b {
   display: block;
   margin-top: 6px;
