@@ -1292,20 +1292,46 @@ function ManageTab({
               {nameGroups.map(([base, cards]) => {
                 const key = `${cat}::${base}`;
                 const isSelected = selectedGroup === key;
+                const allHidden = cards.every((c) => c.drawHidden);
                 return (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`playbook-trainer__manage-group-btn${isSelected ? " is-selected" : ""}`}
-                    onClick={() => setSelectedGroup(key)}
-                  >
-                    <span className="playbook-trainer__manage-group-btn-name">
-                      {base}
-                    </span>
-                    <span className="playbook-trainer__manage-namegroup-count">
-                      {cards.length}
-                    </span>
-                  </button>
+                  <div className="playbook-trainer__manage-group-row" key={key}>
+                    <button
+                      type="button"
+                      className={`playbook-trainer__manage-group-btn${isSelected ? " is-selected" : ""}${allHidden ? " is-hidden" : ""}`}
+                      onClick={() => setSelectedGroup(key)}
+                    >
+                      <span className="playbook-trainer__manage-group-btn-name">
+                        {base}
+                      </span>
+                      <span className="playbook-trainer__manage-namegroup-count">
+                        {cards.length}
+                      </span>
+                    </button>
+                    <label
+                      className="playbook-trainer__manage-group-toggle"
+                      title={
+                        allHidden ? `Show ${base} in Draw` : `Hide ${base} from Draw`
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!allHidden}
+                        aria-label={
+                          allHidden
+                            ? `Show ${base} in Draw`
+                            : `Hide ${base} from Draw`
+                        }
+                        onChange={() => {
+                          const shouldHide = !allHidden;
+                          cards
+                            .filter((c) => Boolean(c.drawHidden) !== shouldHide)
+                            .forEach((c) => onToggleDraw(c));
+                        }}
+                      />
+                      <span className="playbook-trainer__manage-group-toggle-track" />
+                    </label>
+                  </div>
                 );
               })}
             </div>

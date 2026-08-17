@@ -1078,12 +1078,18 @@
   display: grid;
   gap: 4px;
 }
+.playbook-trainer__manage-group-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .playbook-trainer__manage-group-btn {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 9px 11px;
   border: 1px solid transparent;
   border-radius: var(--radius-sharp);
@@ -1106,10 +1112,64 @@
   border-color: color-mix(in srgb, var(--nexus) 55%, var(--hairline-hi));
   background: color-mix(in srgb, var(--nexus) 14%, var(--ink-surface));
 }
+.playbook-trainer__manage-group-btn.is-hidden {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--hairline-hi));
+  background: color-mix(in srgb, var(--danger) 10%, var(--ink-surface));
+}
 .playbook-trainer__manage-group-btn-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.playbook-trainer__manage-group-toggle {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  width: 20px;
+  height: 34px;
+  cursor: pointer;
+}
+.playbook-trainer__manage-group-toggle input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.playbook-trainer__manage-group-toggle-track {
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, var(--hairline-hi));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--danger) 16%, var(--ink-surface));
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast);
+}
+.playbook-trainer__manage-group-toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--danger);
+  transition:
+    transform var(--motion-fast),
+    background var(--motion-fast);
+}
+.playbook-trainer__manage-group-toggle input:checked + .playbook-trainer__manage-group-toggle-track {
+  border-color: color-mix(in srgb, var(--nexus) 55%, var(--hairline-hi));
+  background: color-mix(in srgb, var(--nexus) 16%, var(--ink-surface));
+}
+.playbook-trainer__manage-group-toggle input:checked + .playbook-trainer__manage-group-toggle-track::after {
+  background: var(--nexus);
+  transform: translateY(16px);
+}
+.playbook-trainer__manage-group-toggle input:focus-visible + .playbook-trainer__manage-group-toggle-track {
+  outline: 2px solid var(--nexus);
+  outline-offset: 2px;
 }
 .playbook-trainer__manage-detail {
   display: grid;
