@@ -9,7 +9,12 @@ import {
   listWeeks,
   deleteWeek,
 } from "../lib/filmLogStorage";
-import { DOWN_NAME, computeTendencies, pct } from "../lib/filmLogTendencies";
+import {
+  DOWN_NAME,
+  computeTendencies,
+  computeSessionSummary,
+  pct,
+} from "../lib/filmLogTendencies";
 import "./filmLogLibrary.css";
 
 function Screenshot({ screenshot }) {
@@ -105,26 +110,28 @@ function TallyRow({ label, list, total }) {
       <span>{label}</span>
       {list.map(([value, count]) => (
         <b key={value}>
-          {value} {pct(count, total)}% ({count}/{total})
+          {value} {pct(count, total)}%
         </b>
       ))}
     </p>
   ) : null;
 }
-function WeekTendencies({ group }) {
-  const stats = useMemo(
-    () => computeTendencies(group.sessions),
-    [group.sessions],
-  );
+// Shared renderer for one unit-tendencies snapshot (computeTendencies or computeSessionSummary
+// produce the same shape) -- `stacked` collapses the offense/defense two-column layout to one
+// column for the narrower per-session split pane; the full-width "Overall tendencies" section
+// keeps the side-by-side layout.
+function TendenciesBlock({ stats, stacked }) {
   if (!stats.offenseCount && !stats.defenseCount)
     return (
       <p className="library__empty">
-        No opponent film logged for this week yet -- tendencies show up once you
-        log offense or defense reps.
+        No offense or defense reps logged yet -- tendencies show up once
+        entries are tagged by unit.
       </p>
     );
   return (
-    <div className="library__tendencies">
+    <div
+      className={`library__tendencies${stacked ? " library__tendencies--stacked" : ""}`}
+    >
       <div className="library__tendencies-col">
         <h3>
           Their offense <small>{stats.offenseCount} logged reps</small>
@@ -153,8 +160,7 @@ function WeekTendencies({ group }) {
             {stats.offenseByDown.map((d) => (
               <p className="library__tendency-note" key={`down-${d.down}`}>
                 On {DOWN_NAME[d.down] || d.down} down, {d.top[0]}{" "}
-                {pct(d.top[1], d.total)}% ({d.top[1]} of {d.total} logged
-                times).
+                {pct(d.top[1], d.total)}% ({d.total} reps).
               </p>
             ))}
             {stats.offenseByDownDistance.map((d) => (
@@ -163,14 +169,13 @@ function WeekTendencies({ group }) {
                 key={`dd-${d.down}-${d.distance}`}
               >
                 On {DOWN_NAME[d.down] || d.down} & {d.distance}, {d.top[0]}{" "}
-                {pct(d.top[1], d.total)}% ({d.top[1]} of {d.total} logged
-                times).
+                {pct(d.top[1], d.total)}% ({d.total} reps).
               </p>
             ))}
             {stats.offenseByFormation.map((f) => (
               <p className="library__tendency-note" key={`f-${f.formation}`}>
                 From {f.formation}, {f.top[0]} {pct(f.top[1], f.total)}% (
-                {f.top[1]} of {f.total} logged times).
+                {f.total} reps).
               </p>
             ))}
           </>
@@ -197,8 +202,7 @@ function WeekTendencies({ group }) {
             {stats.defenseByDown.map((d) => (
               <p className="library__tendency-note" key={`down-${d.down}`}>
                 On {DOWN_NAME[d.down] || d.down} down, {d.top[0]}{" "}
-                {pct(d.top[1], d.total)}% ({d.top[1]} of {d.total} logged
-                times).
+                {pct(d.top[1], d.total)}% ({d.total} reps).
               </p>
             ))}
           </>
@@ -206,6 +210,22 @@ function WeekTendencies({ group }) {
       </div>
     </div>
   );
+}
+function WeekTendencies({ group }) {
+  const stats = useMemo(
+    () => computeTendencies(group.sessions),
+    [group.sessions],
+  );
+  return <TendenciesBlock stats={stats} />;
+}
+// One session's own tendencies, computed fresh from its entries -- the same computeSessionSummary
+// FilmLog.jsx persists onto the session file, reused here rather than duplicated.
+function SessionTendencies({ session }) {
+  const stats = useMemo(
+    () => computeSessionSummary(session.entries || []),
+    [session.entries],
+  );
+  return <TendenciesBlock stats={stats} stacked />;
 }
 // Module-level, not component state -- Xander's real complaint: switching tabs reset the whole
 // conversation and dropped an in-flight reply. A React tab component unmounts/remounts every time
@@ -1120,54 +1140,65 @@ export default function FilmLogLibrary() {
                           </form>
                         )}
                         {sessionOpen && (
-                          <div className="library__entries">
-                            {(session.entries || []).length === 0 ? (
-                              <p className="library__empty">
-                                No notes in this session.
-                              </p>
-                            ) : (
-                              (session.entries || []).map((entry) => {
-                                const context = situationTags(
-                                  entry.situation,
-                                );
-                                return (
-                                  <article
-                                    className="library__entry"
-                                    key={entry.id}
-                                  >
-                                    {entry.screenshots?.[0] && (
-                                      <Screenshot
-                                        screenshot={entry.screenshots[0]}
-                                      />
-                                    )}
-                                    <div>
-                                      <div className="library__entry-meta">
-                                        <i>{entry.unit || "self"}</i>
-                                        <small>
-                                          {entry.playNameSnapshot ||
-                                            "not matched"}
-                                        </small>
+                          <div className="library__session-split">
+                            <div className="library__entries">
+                              {(session.entries || []).length === 0 ? (
+                                <p className="library__empty">
+                                  No notes in this session.
+                                </p>
+                              ) : (
+                                (session.entries || []).map((entry) => {
+                                  const context = situationTags(
+                                    entry.situation,
+                                  );
+                                  return (
+                                    <article
+                                      className="library__entry"
+                                      key={entry.id}
+                                    >
+                                      {entry.screenshots?.[0] && (
+                                        <Screenshot
+                                          screenshot={entry.screenshots[0]}
+                                        />
+                                      )}
+                                      <div>
+                                        <div className="library__entry-meta">
+                                          <i>{entry.unit || "self"}</i>
+                                          <small>
+                                            {entry.playNameSnapshot ||
+                                              "not matched"}
+                                          </small>
+                                        </div>
+                                        {context.length > 0 && (
+                                          <div className="library__tags">
+                                            {context.map((tag, i) => (
+                                              <span key={i}>{tag}</span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <p>{entry.body}</p>
+                                        {entry.tags?.length > 0 && (
+                                          <div className="library__tags">
+                                            {entry.tags.map((tag) => (
+                                              <span key={tag}>{tag}</span>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
-                                      {context.length > 0 && (
-                                        <div className="library__tags">
-                                          {context.map((tag, i) => (
-                                            <span key={i}>{tag}</span>
-                                          ))}
-                                        </div>
-                                      )}
-                                      <p>{entry.body}</p>
-                                      {entry.tags?.length > 0 && (
-                                        <div className="library__tags">
-                                          {entry.tags.map((tag) => (
-                                            <span key={tag}>{tag}</span>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </article>
-                                );
-                              })
-                            )}
+                                    </article>
+                                  );
+                                })
+                              )}
+                            </div>
+                            <div className="library__session-tendencies">
+                              <div className="library__panel-heading">
+                                <span className="label">
+                                  This session's tendencies
+                                </span>
+                                <small>Just this session, not the week combined.</small>
+                              </div>
+                              <SessionTendencies session={session} />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1176,9 +1207,10 @@ export default function FilmLogLibrary() {
                   {label !== "No week set" && (
                     <>
                       <div className="library__panel-heading">
-                        <span className="label">Week tendencies</span>
+                        <span className="label">Overall tendencies</span>
                         <small>
-                          Combined from every session logged for this week.
+                          Combined across every session logged for this week --
+                          most useful once there's more than one game of data.
                         </small>
                       </div>
                       <WeekTendencies group={group} />
