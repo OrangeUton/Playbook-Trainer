@@ -1064,6 +1064,10 @@
   color: var(--text-mid);
   font: 700 10px var(--font-mono);
 }
+.playbook-trainer__manage-sync {
+  display: flex;
+  gap: 8px;
+}
 .playbook-trainer__manage-toolbar {
   display: flex;
   gap: 12px;

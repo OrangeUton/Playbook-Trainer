@@ -1216,9 +1216,32 @@ function ManageTab({
   onDelete,
   onResetDeck,
   onToggleDraw,
+  onImportDeck,
 }) {
   const [form, setForm] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const importInputRef = useRef(null);
+  const exportDeck = () => {
+    const blob = new Blob([JSON.stringify(deck, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `playbook-trainer-deck-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      onImportDeck(JSON.parse(await file.text()));
+    } catch {
+      window.alert("Couldn't read that file -- is it a Playbook Trainer export?");
+    }
+  };
   const grouped = useMemo(() => {
     const list =
       category === "all" ? deck : deck.filter((c) => c.category === category);
@@ -1290,6 +1313,29 @@ function ManageTab({
           <span className="playbook-trainer__manage-count">
             {deck.length} card{deck.length === 1 ? "" : "s"}
           </span>
+          <div className="playbook-trainer__manage-sync">
+            <button
+              type="button"
+              className="playbook-trainer__secondary-btn"
+              onClick={exportDeck}
+            >
+              Export deck
+            </button>
+            <button
+              type="button"
+              className="playbook-trainer__secondary-btn"
+              onClick={() => importInputRef.current?.click()}
+            >
+              Import deck
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept="application/json"
+              hidden
+              onChange={handleImportFile}
+            />
+          </div>
         </div>
         {grouped.map(([cat, nameGroups]) => (
           <div className="playbook-trainer__manage-category" key={cat}>
@@ -2140,6 +2186,23 @@ export default function PlaybookTrainerPage() {
       saveDeck(next);
       return next;
     });
+  // Deck only ever lives in this browser's localStorage -- Export/Import is the whole sync
+  // story between devices (e.g. desktop -> phone) until there's a real backend for it.
+  const importDeck = (cards) => {
+    if (!Array.isArray(cards) || !cards.length) {
+      window.alert("That file doesn't look like a Playbook Trainer export.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Import ${cards.length} cards? This replaces everything currently in this deck on this device.`,
+      )
+    )
+      return;
+    saveDeck(cards);
+    setDeck(cards);
+    setSession(blankSession());
+  };
   const tabIcons = {
     practice: (
       <svg
@@ -2297,6 +2360,7 @@ export default function PlaybookTrainerPage() {
               category={category}
               onAdd={(v) => persist(v, false)}
               onEdit={(v) => persist(v, true)}
+              onImportDeck={importDeck}
               onDelete={(card) => {
                 if (
                   window.confirm(

@@ -1,0 +1,13 @@
+{
+  "name": "Playbook Trainer",
+  "short_name": "Playbook",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#081016",
+  "theme_color": "#081016",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
