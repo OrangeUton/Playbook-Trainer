@@ -1109,6 +1109,41 @@ function FormationLabel({ card, deck }) {
 function CardForm({ form, setForm, onSave, onCancel, formations }) {
   const ready = form.name.trim() && form.answerText.trim();
   const diagram = normalDiagram(form.answerDiagram) || createDiagram();
+  const hasValidFormationBubbles = (formation) =>
+    Array.isArray(formation.answerDiagram?.bubbles) &&
+    formation.answerDiagram.bubbles.length > 0 &&
+    formation.answerDiagram.bubbles.every(
+      (bubble) =>
+        bubble &&
+        typeof bubble.id === "string" &&
+        Number.isFinite(bubble.x) &&
+        Number.isFinite(bubble.y),
+    );
+  const linkedFormation =
+    (form.category === "concept" || form.category === "fullfield") &&
+    form.formationId
+      ? formations.find(
+          (formation) =>
+            formation.id === form.formationId &&
+            formation.category === "formation" &&
+            hasValidFormationBubbles(formation),
+        )
+      : null;
+  const hasDefaultBubblePositions = (bubbles) => {
+    const defaults = createDiagram().bubbles;
+    return (
+      Array.isArray(bubbles) &&
+      bubbles.length === defaults.length &&
+      bubbles.every(
+        (bubble, index) =>
+          bubble?.id === defaults[index].id &&
+          Number.isFinite(bubble.x) &&
+          Number.isFinite(bubble.y) &&
+          Math.abs(bubble.x - defaults[index].x) <= 3 &&
+          Math.abs(bubble.y - defaults[index].y) <= 3,
+      )
+    );
+  };
   return (
     <div className="playbook-trainer__form">
       <label className="playbook-trainer__field">
@@ -1147,9 +1182,34 @@ function CardForm({ form, setForm, onSave, onCancel, formations }) {
           <span className="label">Formation (optional)</span>
           <select
             value={form.formationId || ""}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, formationId: e.target.value || null }))
-            }
+            onChange={(e) => {
+              const formationId = e.target.value || null;
+              setForm((f) => {
+                const selectedFormation = formations.find(
+                  (formation) =>
+                    formation.id === formationId &&
+                    formation.category === "formation" &&
+                    hasValidFormationBubbles(formation),
+                );
+                const current = normalDiagram(f.answerDiagram);
+                const shouldSeed =
+                  selectedFormation &&
+                  current &&
+                  hasDefaultBubblePositions(current.bubbles);
+                return {
+                  ...f,
+                  formationId,
+                  answerDiagram: shouldSeed
+                    ? {
+                        ...current,
+                        bubbles: selectedFormation.answerDiagram.bubbles.map(
+                          (bubble) => ({ ...bubble }),
+                        ),
+                      }
+                    : f.answerDiagram,
+                };
+              });
+            }}
           >
             <option value="">No formation set</option>
             {formations.map((f) => (
@@ -1213,6 +1273,29 @@ function CardForm({ form, setForm, onSave, onCancel, formations }) {
           >
             Reset formation
           </button>
+          {linkedFormation && (
+            <button
+              type="button"
+              className="playbook-trainer__secondary-btn"
+              onClick={() =>
+                setForm((f) => {
+                  const current =
+                    normalDiagram(f.answerDiagram) || createDiagram();
+                  return {
+                    ...f,
+                    answerDiagram: {
+                      ...current,
+                      bubbles: linkedFormation.answerDiagram.bubbles.map(
+                        (bubble) => ({ ...bubble }),
+                      ),
+                    },
+                  };
+                })
+              }
+            >
+              Match formation
+            </button>
+          )}
           <button
             type="button"
             className="playbook-trainer__secondary-btn"
