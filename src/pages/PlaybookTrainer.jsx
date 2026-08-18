@@ -311,13 +311,13 @@ function FieldBackground() {
     </svg>
   );
 }
-function Bubble({ bubble, editable, onDragStart }) {
+function Bubble({ bubble, editable, bubblesLocked, onDragStart }) {
   const isQb = bubble.type === "QB";
   return (
     <g
-      className={`playbook-trainer__bubble playbook-trainer__bubble--${bubble.type.toLowerCase()}${editable ? " is-editable" : ""}`}
+      className={`playbook-trainer__bubble playbook-trainer__bubble--${bubble.type.toLowerCase()}${editable && !bubblesLocked ? " is-editable" : ""}`}
       transform={`translate(${bubble.x} ${bubble.y})`}
-      onPointerDown={(e) => editable && onDragStart(e, bubble.id)}
+      onPointerDown={(e) => editable && !bubblesLocked && onDragStart(e, bubble.id)}
     >
       {isQb ? (
         <rect x="-13" y="-10" width="26" height="20" rx="2" />
@@ -336,6 +336,7 @@ function DiagramSvg({
   onChange,
   tool = "freehand",
   snapFormation = true,
+  bubblesLocked = false,
 }) {
   const svgRef = useRef(null),
     activeLineRef = useRef(null),
@@ -541,6 +542,7 @@ function DiagramSvg({
           key={bubble.id}
           bubble={bubble}
           editable={editable}
+          bubblesLocked={bubblesLocked}
           onDragStart={startDrag}
         />
       ))}
@@ -555,7 +557,13 @@ function DiagramSvg({
     </svg>
   );
 }
-function DiagramBoard({ diagram, editable, onChange, snapFormation = true }) {
+function DiagramBoard({
+  diagram,
+  editable,
+  onChange,
+  snapFormation = true,
+  bubblesLocked = false,
+}) {
   const [tool, setTool] = useState("freehand");
   const canUndo = editable && diagram.lines.length > 0;
   const undoLastLine = () =>
@@ -655,6 +663,7 @@ function DiagramBoard({ diagram, editable, onChange, snapFormation = true }) {
           onChange={onChange}
           tool={tool}
           snapFormation={snapFormation}
+          bubblesLocked={bubblesLocked}
         />
       </div>
       {editable && (
@@ -983,6 +992,7 @@ function DrawTab({ deck, category, session, gradeAndAdvance, dayStreak }) {
                     editable
                     onChange={setDrawing}
                     snapFormation={snapFormation}
+                    bubblesLocked={Boolean(formationBubbles)}
                   />
                   <div className="playbook-trainer__draw-actions">
                     <button

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node scripts/dev-all.js",
     "dev:vite-only": "vite",
-    "build": "vite build",
+    "build": "vite build --configLoader runner",
     "preview": "vite preview"
   },
   "dependencies": {

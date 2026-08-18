@@ -1970,6 +1970,20 @@
   .playbook-trainer__card {
     padding: 24px 20px;
   }
+  .playbook-trainer__card > .playbook-trainer__diagram-editor {
+    width: calc(100% + 24px);
+    max-width: none;
+    margin-inline: -12px;
+  }
+  .playbook-trainer__diagram-editor,
+  .playbook-trainer__canvas-wrap {
+    max-width: none;
+  }
+  .playbook-trainer__tool-palette button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
   .playbook-trainer__tool-palette > span {
     width: 100%;
     margin-bottom: 0;
