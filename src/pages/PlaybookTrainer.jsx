@@ -872,7 +872,8 @@ function DrawTab({ deck, category, session, gradeAndAdvance, dayStreak }) {
   const drill = useDrillCard(drawPool);
   const [comparing, setComparing] = useState(false),
     [drawing, setDrawing] = useState(createDiagram),
-    [snapFormation, setSnapFormation] = useState(true);
+    [snapFormation, setSnapFormation] = useState(true),
+    [fullscreen, setFullscreen] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0),
     [attemptElapsedMs, setAttemptElapsedMs] = useState(null),
     [noteText, setNoteText] = useState("");
@@ -904,6 +905,14 @@ function DrawTab({ deck, category, session, gradeAndAdvance, dayStreak }) {
     );
     return () => clearInterval(timer);
   }, [comparing, drill.current?.id]);
+  useEffect(() => {
+    document.body.classList.toggle(
+      "playbook-trainer-draw-fullscreen",
+      fullscreen,
+    );
+    return () =>
+      document.body.classList.remove("playbook-trainer-draw-fullscreen");
+  }, [fullscreen]);
   const clear = () => setDrawing(seedDiagram());
   const compare = () => {
     const ms = Date.now() - cardShownAtRef.current;
@@ -937,6 +946,15 @@ function DrawTab({ deck, category, session, gradeAndAdvance, dayStreak }) {
         title="Draw session"
       />
       <div className="playbook-trainer__stage">
+        {fullscreen && (
+          <button
+            type="button"
+            className="playbook-trainer__secondary-btn playbook-trainer__fullscreen-exit"
+            onClick={() => setFullscreen(false)}
+          >
+            Exit full screen
+          </button>
+        )}
         {missingDiagramCount > 0 && (
           <p className="playbook-trainer__note">
             {missingDiagramCount} card{missingDiagramCount === 1 ? "" : "s"} in
@@ -973,6 +991,13 @@ function DrawTab({ deck, category, session, gradeAndAdvance, dayStreak }) {
                   />
                   Snap to formation
                 </label>
+                <button
+                  type="button"
+                  className="playbook-trainer__secondary-btn playbook-trainer__fullscreen-toggle"
+                  onClick={() => setFullscreen(true)}
+                >
+                  Full screen
+                </button>
               </div>
               <p className="playbook-trainer__timer">
                 {comparing

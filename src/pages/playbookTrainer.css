@@ -123,6 +123,46 @@
   overflow-x: hidden;
 }
 
+/* Draw's in-app fullscreen mode: the installed PWA already owns the viewport. */
+body.playbook-trainer-draw-fullscreen {
+  overflow: hidden;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer {
+  display: block;
+  min-height: 100dvh;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer__sidebar,
+body.playbook-trainer-draw-fullscreen
+  .playbook-trainer__main
+  > .playbook-trainer__pillgroup,
+body.playbook-trainer-draw-fullscreen .playbook-trainer__session-rail {
+  display: none;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer__main {
+  display: block;
+  height: 100dvh;
+  padding: clamp(14px, 2vw, 28px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer__workspace {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  max-width: none;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer__stage,
+body.playbook-trainer-draw-fullscreen .playbook-trainer__card {
+  min-width: 0;
+  max-width: none;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer__diagram-editor,
+body.playbook-trainer-draw-fullscreen .playbook-trainer__canvas-wrap {
+  max-width: none;
+}
+body.playbook-trainer-draw-fullscreen .playbook-trainer__fullscreen-exit {
+  justify-self: end;
+}
+
 /* Shared focus ring. */
 .playbook-trainer :is(button, input, select, textarea):focus-visible {
   outline: 2px solid color-mix(in srgb, var(--nexus) 80%, transparent);
