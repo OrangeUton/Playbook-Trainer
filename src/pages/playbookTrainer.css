@@ -1405,6 +1405,19 @@ body.playbook-trainer-draw-fullscreen .playbook-trainer__fullscreen-exit {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.playbook-trainer__mastery-tile {
+  grid-column: span 3;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--hairline-hi);
+  border-radius: var(--radius-panel);
+  background: var(--ink-surface2);
+  box-shadow: var(--shadow-md);
+  animation: playbook-trainer-panel-in 320ms var(--ease-out) backwards;
+  animation-delay: 70ms;
+}
 .playbook-trainer__trend-tile {
   grid-column: span 6;
   display: grid;
@@ -2035,6 +2048,7 @@ body.playbook-trainer-draw-fullscreen .playbook-trainer__fullscreen-exit {
     font-size: 20px;
   }
   .playbook-trainer__hero-tile,
+  .playbook-trainer__mastery-tile,
   .playbook-trainer__trend-tile,
   .playbook-trainer__notes-tile {
     grid-column: 1 / -1;

@@ -2038,6 +2038,14 @@ function StatsTab({ deck }) {
       accuracy: attempts ? Math.round((correct / attempts) * 100) : null,
     };
   }, [deck]);
+  const boxDistribution = useMemo(
+    () =>
+      [1, 2, 3, 4, 5].map((box) => ({
+        box,
+        count: deck.filter((c) => c.box === box).length,
+      })),
+    [deck],
+  );
   const byCategory = useMemo(
     () =>
       CATEGORY_SELECT_OPTIONS.map((o) => {
@@ -2088,6 +2096,21 @@ function StatsTab({ deck }) {
             </b>
             <small>mastered</small>
           </div>
+        </div>
+      </div>
+
+      <div className="playbook-trainer__mastery-tile">
+        <div className="playbook-trainer__panel-heading">
+          <span className="label">Mastery by box</span>
+          <small>Whole deck</small>
+        </div>
+        <div className="playbook-trainer__box-stack">
+          {boxDistribution.map(({ box, count }) => (
+            <div className="playbook-trainer__box-row" key={box}>
+              <span>{box === 5 ? "Box 5 · Mastered" : `Box ${box}`}</span>
+              <b>{count}</b>
+            </div>
+          ))}
         </div>
       </div>
 
