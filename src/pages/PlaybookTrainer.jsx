@@ -136,9 +136,8 @@ function saveDeck(deck) {
 function blankSession() {
   return { attempts: 0, correct: 0, streak: 0, best: 0 };
 }
-function weightedPick(pool, excludeId) {
-  const candidates =
-    pool.length > 2 ? pool.filter((c) => c.id !== excludeId) : pool;
+function weightedPick(pool, excludeIds = []) {
+  const candidates = pool.filter((c) => !excludeIds.includes(c.id));
   const list = candidates.length ? candidates : pool;
   let roll = Math.random() * list.reduce((sum, c) => sum + (6 - c.box), 0);
   for (const c of list) {
@@ -191,13 +190,19 @@ function strokePath(points) {
 function useDrillCard(pool) {
   const [currentId, setCurrentId] = useState(null);
   const poolRef = useRef(pool);
+  const recentIdsRef = useRef([]);
   useEffect(() => {
     poolRef.current = pool;
   });
-  const advance = useCallback((excludeId) => {
+  const advance = useCallback((_excludeId) => {
+    if (currentId) {
+      recentIdsRef.current = [...recentIdsRef.current, currentId].slice(-4);
+    }
     const p = poolRef.current;
-    setCurrentId(p.length ? weightedPick(p, excludeId).id : null);
-  }, []);
+    setCurrentId(
+      p.length ? weightedPick(p, recentIdsRef.current).id : null,
+    );
+  }, [currentId]);
   const poolIds = pool.map((c) => c.id).join(",");
   useEffect(() => {
     if (!pool.length) {

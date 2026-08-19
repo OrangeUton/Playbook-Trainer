@@ -2056,6 +2056,12 @@ body.playbook-trainer-draw-fullscreen .playbook-trainer__fullscreen-exit {
   .playbook-trainer__manage {
     grid-template-columns: 1fr !important;
   }
+  .playbook-trainer__manage-master {
+    overflow-x: auto;
+  }
+  .playbook-trainer__manage-master-header {
+    flex-wrap: wrap;
+  }
   .playbook-trainer__manage-row {
     grid-template-columns: 1fr;
   }
