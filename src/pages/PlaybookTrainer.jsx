@@ -136,15 +136,30 @@ function saveDeck(deck) {
 function blankSession() {
   return { attempts: 0, correct: 0, streak: 0, best: 0 };
 }
+// Real spaced-repetition intervals, not just box-weighting -- a box-5 "mastered" card should
+// actually rest for two weeks, not just be less likely to show up in the very next session.
+// Box 1 has no minimum (a missed card should be eligible again immediately). Reuses each card's
+// existing `history` array for its last-reviewed time instead of tracking a separate field.
+const BOX_REST_DAYS = { 1: 0, 2: 2, 3: 4, 4: 7, 5: 14 };
+function isDue(card, now) {
+  const last = card.history?.at(-1);
+  if (!last) return true;
+  const restMs = (BOX_REST_DAYS[card.box] || 0) * 24 * 60 * 60 * 1000;
+  return now - new Date(last.at).getTime() >= restMs;
+}
 function weightedPick(pool, excludeIds = []) {
   const candidates = pool.filter((c) => !excludeIds.includes(c.id));
   const list = candidates.length ? candidates : pool;
-  let roll = Math.random() * list.reduce((sum, c) => sum + (6 - c.box), 0);
-  for (const c of list) {
+  const now = Date.now();
+  const due = list.filter((c) => isDue(c, now));
+  // Never dead-end a session -- if every card is still resting, draw from the full list anyway.
+  const drawPool = due.length ? due : list;
+  let roll = Math.random() * drawPool.reduce((sum, c) => sum + (6 - c.box), 0);
+  for (const c of drawPool) {
     roll -= 6 - c.box;
     if (roll <= 0) return c;
   }
-  return list.at(-1);
+  return drawPool.at(-1);
 }
 function buildPrompt(name, variation) {
   return variation ? `${name} — ${variation}` : name;

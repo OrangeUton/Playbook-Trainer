@@ -1098,6 +1098,7 @@ body.playbook-trainer-draw-fullscreen .playbook-trainer__fullscreen-exit {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
 }
 .playbook-trainer__manage-count {
@@ -2072,9 +2073,6 @@ body.playbook-trainer-draw-fullscreen .playbook-trainer__fullscreen-exit {
   }
   .playbook-trainer__manage-master {
     overflow-x: auto;
-  }
-  .playbook-trainer__manage-master-header {
-    flex-wrap: wrap;
   }
   .playbook-trainer__manage-row {
     grid-template-columns: 1fr;

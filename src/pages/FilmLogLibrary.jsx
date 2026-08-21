@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getConnectionStatus,
   listSessions,
@@ -87,16 +87,19 @@ const COACHES = [
     id: "football-scout",
     label: "Football Scout",
     hint: "Opponent tendencies and scouting",
+    etaHint: "usually 1-3 min",
   },
   {
     id: "self-improvement-coach",
     label: "Nick",
     hint: "Your own recurring patterns, practice prep",
+    etaHint: "usually 1-3 min",
   },
   {
     id: "game-plan-coordinator",
     label: "Game Plan Coordinator",
     hint: "Drafts the actual weekly plan",
+    etaHint: "usually 5-10 min -- it also runs a cross-model review",
   },
 ];
 // Fast, deterministic, no AI wait -- a glance-able counterpart to asking a coach, not a replacement
@@ -232,7 +235,7 @@ function SessionTendencies({ session }) {
 // he leaves and returns to Library; a plain module object survives that (it only resets on a real
 // page reload), and a reply that lands while unmounted still updates here so it's there when he
 // comes back, instead of silently vanishing into a dead component instance.
-const coachStore = { chats: {}, busy: {}, error: {}, listeners: new Set() };
+const coachStore = { chats: {}, busy: {}, busyStartedAt: {}, error: {}, listeners: new Set() };
 function notifyCoachStore() {
   for (const listener of coachStore.listeners) listener();
 }
@@ -251,6 +254,7 @@ async function sendToCoach(agent, text) {
     { role: "you", text },
   ];
   coachStore.busy[agent] = true;
+  coachStore.busyStartedAt[agent] = Date.now();
   coachStore.error[agent] = "";
   notifyCoachStore();
   try {
@@ -325,6 +329,20 @@ function MemoryPanel({ agent, memory, onRetry }) {
   );
 }
 
+function elapsedLabel(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60), seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+function ElapsedTimer({ since }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return elapsedLabel(now - since);
+}
+
 function CoachChat() {
   const store = useCoachStore();
   const [openCoach, setOpenCoach] = useState(null),
@@ -335,6 +353,12 @@ function CoachChat() {
   const messages = openCoach ? store.chats[openCoach] || [] : [],
     busy = openCoach ? !!store.busy[openCoach] : false,
     error = openCoach ? store.error[openCoach] || "" : "";
+  const lastMessageRef = useRef(null);
+  useEffect(() => {
+    // Scroll to the START of the newest message, not the bottom -- a long reply
+    // (a real game report) should open with its top line visible, not its last one.
+    lastMessageRef.current?.scrollIntoView({ block: "start" });
+  }, [openCoach, messages.length]);
   const loadMemory = (agentId) => {
     setMemoryByAgent((prev) => ({
       ...prev,
@@ -427,14 +451,22 @@ function CoachChat() {
               <div
                 className={`library__coach-message library__coach-message--${message.role}`}
                 key={index}
+                ref={index === messages.length - 1 ? lastMessageRef : null}
               >
                 <p>{message.text}</p>
               </div>
             ))}
             {busy && (
-              <p className="library__search-loading" role="status">
+              <p
+                className="library__search-loading"
+                role="status"
+                ref={messages.length === 0 ? lastMessageRef : null}
+              >
                 <span className="library__spinner" aria-hidden="true" />
-                Waiting on a real reply -- this can take a couple of minutes.
+                Waiting on a real reply -- {coach.etaHint || "this can take a few minutes"}.
+                {store.busyStartedAt[openCoach] && (
+                  <> Elapsed: <ElapsedTimer since={store.busyStartedAt[openCoach]} />.</>
+                )}{" "}
                 Safe to switch tabs, it'll still be here.
               </p>
             )}
@@ -453,10 +485,15 @@ function CoachChat() {
           </p>
         )}
         <form className="library__search-form library__chat-takeover-form" onSubmit={send}>
-          <input
+          <textarea
+            className="library__chat-input"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) send(event);
+            }}
             placeholder="Ask a question…"
+            rows={1}
             disabled={busy}
             autoFocus
           />

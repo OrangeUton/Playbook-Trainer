@@ -165,10 +165,18 @@ function runClaude(prompt, sessionId, isNew, agentName) {
     const child = spawn('claude', args, { cwd: PROJECT_ROOT, shell: false, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, CLAUDE_CONFIG_DIR: AGENT_CLAUDE_CONFIG_DIR } })
     let output = '', settled = false
     const timer = setTimeout(() => { if (settled) return; settled = true; child.kill(); reject(new Error('Agent did not respond within 10 minutes.')) }, 600000)
+    const settle = (code) => { if (settled) return; settled = true; clearTimeout(timer); code === 0 ? resolve(output.trim()) : reject(new Error(`claude exited with code ${code}: ${output.slice(-500)}`)) }
     child.stdout.on('data', (chunk) => { output += chunk })
     child.stderr.on('data', (chunk) => { output += chunk })
     child.on('error', (error) => { if (settled) return; settled = true; clearTimeout(timer); reject(error) })
-    child.on('close', (code) => { if (settled) return; settled = true; clearTimeout(timer); code === 0 ? resolve(output.trim()) : reject(new Error(`claude exited with code ${code}: ${output.slice(-500)}`)) })
+    // Real bug, found live: 'close' waits for the child's stdio pipes to close, which can hang
+    // indefinitely if `claude` leaves an inherited grandchild process (an MCP server subprocess) still
+    // holding them open even after `claude` itself has genuinely finished and exited -- the reply sits
+    // fully generated with nothing left to deliver it. 'exit' fires as soon as the process itself is
+    // done, so use that as the real signal and just give 'close' a short grace window to arrive first
+    // in case the pipes do close promptly, to avoid truncating output caught mid-flush.
+    child.on('exit', (code) => { setTimeout(() => settle(code), 1500) })
+    child.on('close', (code) => settle(code))
   })
 }
 
@@ -194,7 +202,7 @@ async function listAllSessions() {
 }
 
 function searchPrompt(query, sessions) {
-  const corpus = sessions.flatMap((session) => (session.entries || []).map((entry) => `[entry id=${entry.id} session=${session.id} week=${session.week || 'unlabeled'} subject=${session.subject}${session.subject === 'opponent' ? ` opponent=${session.opponentName || 'unknown'} unit=${entry.unit || 'unknown'}` : ` context=${session.context || 'unknown'}`}] ${entry.body}`)).join('\n')
+  const corpus = sessions.flatMap((session) => (session.entries || []).map((entry) => `[entry id=${entry.id} session=${session.id} week=${session.week || 'unlabeled'} subject=${session.subject}${session.subject === 'opponent' ? ` opponent=${session.opponentName || 'unknown'} unit=${entry.unit || 'unknown'}` : ` context=${session.context || 'unknown'}`}${entry.source === 'coach' ? ' source=coach-scouting-report' : ''}] ${entry.body}`)).join('\n')
   return `${VOCAB_PRIMER}
 
 You are searching a football player's full film-log history across every week of the season for notes relevant to this query: "${query}"
