@@ -159,6 +159,21 @@ async function analyzeSession(sessionId, triggeredBy = 'manual') {
 async function loadAgentSessions() { try { return JSON.parse(await readFile(AGENT_SESSIONS_FILE, 'utf8')) } catch { return {} } }
 async function saveAgentSessions(sessions) { await writeFile(AGENT_SESSIONS_FILE, JSON.stringify(sessions, null, 2)) }
 
+// Real, permanent chat display log -- a lifetime of messages per agent, not tied to any one
+// browser tab or session. The underlying Claude conversation already persists forever via
+// --resume (a real transcript file under ~/.claude/projects/), but the chat UI itself only ever
+// lived in an in-memory JS variable that died on every refresh. This is that same history, just
+// kept in a form the browser can actually re-read on load, in the same project folder pattern as
+// AGENT_SESSIONS_FILE above.
+const AGENT_CHAT_HISTORY_FILE = path.join(PROJECT_ROOT, 'scripts', '.agent-chat-history.json')
+async function loadChatHistory() { try { return JSON.parse(await readFile(AGENT_CHAT_HISTORY_FILE, 'utf8')) } catch { return {} } }
+async function appendChatHistory(agentName, message, reply) {
+  const history = await loadChatHistory()
+  const now = new Date().toISOString()
+  history[agentName] = [...(history[agentName] || []), { role: 'you', text: message, at: now }, { role: 'coach', text: reply, at: now }]
+  await writeFile(AGENT_CHAT_HISTORY_FILE, JSON.stringify(history, null, 2))
+}
+
 // A real, ongoing conversation with a named Claude subagent -- not a one-shot Codex call. Xander's
 // own ask: talk to Nick and the other agents from inside the app, no terminal required. Mirrors the
 // exact `claude -p --session-id`/`--resume` pattern already proven by this project's own
@@ -197,6 +212,7 @@ async function askAgent(agentName, message) {
 Message: ${message}`
   const reply = await runClaude(prompt, sessionId, isNew, agentName)
   if (isNew) { sessions[agentName] = sessionId; await saveAgentSessions(sessions) }
+  await appendChatHistory(agentName, message, reply)
   return reply
 }
 
@@ -238,7 +254,7 @@ const server = createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
-  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes', '/ask-agent', '/agent-memory'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
+  if (req.method !== 'POST' || !['/analyze', '/extract-situation', '/search-notes', '/ask-agent', '/agent-memory', '/chat-history'].includes(req.url)) { res.writeHead(404); res.end('not found'); return }
   let body = ''
   req.on('data', (chunk) => { body += chunk })
   req.on('end', async () => {
@@ -249,6 +265,14 @@ const server = createServer((req, res) => {
         const reply = await askAgent(agent, message.trim())
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ reply }))
+        return
+      }
+      if (req.url === '/chat-history') {
+        const { agent } = JSON.parse(body || '{}')
+        if (!agent) throw new Error('agent is required')
+        const history = await loadChatHistory()
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ messages: history[agent] || [] }))
         return
       }
       if (req.url === '/agent-memory') {

@@ -1,0 +1,2 @@
+- [User profile](user_profile.md) — Xander plays DB/secondary; logs terse self-notes, not full sentences
+- [Week 0 game baseline](baseline_week0_game.md) — first-ever self session (2026-08-20); leverage + hand-placement/holding issues open, anchor for future recurrence checks

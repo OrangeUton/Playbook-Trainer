@@ -235,7 +235,30 @@ function SessionTendencies({ session }) {
 // he leaves and returns to Library; a plain module object survives that (it only resets on a real
 // page reload), and a reply that lands while unmounted still updates here so it's there when he
 // comes back, instead of silently vanishing into a dead component instance.
-const coachStore = { chats: {}, busy: {}, busyStartedAt: {}, error: {}, listeners: new Set() };
+const coachStore = { chats: {}, busy: {}, busyStartedAt: {}, error: {}, historyLoaded: {}, listeners: new Set() };
+// Real, permanent history -- reused across page loads and browser sessions, not just this tab's
+// lifetime. The bridge already keeps a lifetime chat log per agent on disk; this just hydrates
+// the in-memory store from it once per agent per page load, before any new message is sent.
+async function loadCoachHistory(agent) {
+  if (coachStore.historyLoaded[agent]) return;
+  coachStore.historyLoaded[agent] = true;
+  try {
+    const response = await fetch("http://127.0.0.1:5199/chat-history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agent }),
+    });
+    if (!response.ok) return;
+    const { messages } = await response.json();
+    if (messages?.length && !coachStore.chats[agent]?.length) {
+      coachStore.chats[agent] = messages;
+      notifyCoachStore();
+    }
+  } catch {
+    // Bridge offline or unreachable -- silently skip, same as the memory panel's own fallback.
+    // Not fetching real history isn't worse than the chat's previous behavior of having none.
+  }
+}
 function notifyCoachStore() {
   for (const listener of coachStore.listeners) listener();
 }
@@ -403,6 +426,7 @@ function CoachChat() {
   const openCoachView = (id) => {
     setOpenCoach(id);
     setMemoryOpen(false);
+    loadCoachHistory(id);
   };
   const toggleMemory = () => {
     if (!memoryOpen && !memoryByAgent[openCoach]) loadMemory(openCoach);

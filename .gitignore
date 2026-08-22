@@ -3,5 +3,6 @@ dist
 .codex-*
 .kimi-*
 scripts/.agent-chat-sessions.json
+scripts/.agent-chat-history.json
 film-log/
 .claude/agents/
