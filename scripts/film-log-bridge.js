@@ -110,10 +110,16 @@ If nothing recurs, respond with an empty array: []
 function runCodex(prompt, model = 'gpt-5.6-terra') {
   return new Promise((resolve, reject) => {
     const child = spawn('node', [CODEX_RUN, '-a', 'on-request', 'exec', '-m', model, '-s', 'read-only', prompt], { stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''
+    let out = '', settled = false
+    const settle = (code) => { if (settled) return; settled = true; code === 0 ? resolve(out) : reject(new Error(`codex-run.js exited with code ${code}`)) }
     child.stdout.on('data', (chunk) => { out += chunk })
-    child.on('error', reject)
-    child.on('close', (code) => code === 0 ? resolve(out) : reject(new Error(`codex-run.js exited with code ${code}`)))
+    child.on('error', (error) => { if (settled) return; settled = true; reject(error) })
+    // Same real bug as runClaude above: 'close' can hang forever if codex-run.js leaves an
+    // inherited grandchild process holding the stdio pipes open, even after it has genuinely
+    // finished. Use 'exit' as the real signal, with a short grace window for 'close' to still
+    // win first when the pipes do close promptly.
+    child.on('exit', (code) => { setTimeout(() => settle(code), 1500) })
+    child.on('close', (code) => settle(code))
   })
 }
 
