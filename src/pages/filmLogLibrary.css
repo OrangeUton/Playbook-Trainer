@@ -278,7 +278,11 @@
   border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--ink-surface) 55%, transparent);
   overflow: hidden;
-  transition: border-color var(--motion-fast);
+  transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+.library__week.is-drop-target {
+  border-color: var(--nexus);
+  background: color-mix(in srgb, var(--nexus) 10%, var(--ink-surface));
 }
 .library__week:hover {
   border-color: color-mix(in srgb, var(--nexus) 35%, var(--hairline-hi));
@@ -323,7 +327,11 @@
   border-radius: 6px;
   background: var(--ink-surface2);
   overflow: hidden;
+  cursor: grab;
   transition: box-shadow var(--motion-fast);
+}
+.library__session:active {
+  cursor: grabbing;
 }
 .library__session:hover {
   box-shadow: var(--shadow-sm);

@@ -558,6 +558,7 @@ export default function FilmLogLibrary() {
     [weeks, setWeeks] = useState([]),
     [expanded, setExpanded] = useState(() => new Set()),
     [expandedSession, setExpandedSession] = useState(() => new Set()),
+    [dragOverWeek, setDragOverWeek] = useState(null),
     [query, setQuery] = useState(""),
     [search, setSearch] = useState({
       loading: false,
@@ -738,6 +739,13 @@ export default function FilmLogLibrary() {
     setEditingId(null);
     setEditDraft(null);
   };
+  const moveSessionToWeek = async (sessionId, label) => {
+    const nextWeek = label === "No week set" ? null : label;
+    const session = sessions.find((item) => item.id === sessionId);
+    if (!session || session.week === nextWeek) return;
+    const next = await updateSession(sessionId, { week: nextWeek });
+    setSessions((list) => list.map((item) => (item.id === next.id ? next : item)));
+  };
   const knownWeeks = useMemo(
     () => [...new Set(sessions.map((item) => item.week).filter(Boolean))],
     [sessions],
@@ -861,7 +869,7 @@ export default function FilmLogLibrary() {
           <span className="label">Film Log library</span>
           <small>
             {connected
-              ? `${sessions.length} saved ${sessions.length === 1 ? "session" : "sessions"}, organized by week.`
+              ? `${sessions.length} saved ${sessions.length === 1 ? "session" : "sessions"}, organized by week. Drag a session onto a different week to move it.`
               : "Connect the Football project folder in Film Log to browse saved sessions."}
           </small>
         </div>
@@ -942,8 +950,19 @@ export default function FilmLogLibrary() {
           const isOpen = expanded.has(label);
           return (
             <div
-              className={`library__week${isOpen ? " is-open" : ""}`}
+              className={`library__week${isOpen ? " is-open" : ""}${dragOverWeek === label ? " is-drop-target" : ""}`}
               key={label}
+              onDragOver={(event) => {
+                if (!event.dataTransfer.types.includes("text/film-log-session-id")) return;
+                event.preventDefault();
+                setDragOverWeek(label);
+              }}
+              onDragLeave={() => setDragOverWeek((current) => (current === label ? null : current))}
+              onDrop={(event) => {
+                const sessionId = event.dataTransfer.getData("text/film-log-session-id");
+                setDragOverWeek(null);
+                if (sessionId) moveSessionToWeek(sessionId, label);
+              }}
             >
               <div
                 className="library__week-header"
@@ -983,7 +1002,7 @@ export default function FilmLogLibrary() {
                       className="library__session-edit"
                       onClick={(event) => startWeekEdit(event, label, group)}
                     >
-                      Manage
+                      Edit week
                     </button>
                     <button
                       type="button"
@@ -1067,6 +1086,11 @@ export default function FilmLogLibrary() {
                       <div
                         className={`library__session${sessionOpen ? " is-open" : ""}`}
                         key={session.id}
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData("text/film-log-session-id", session.id);
+                          event.dataTransfer.effectAllowed = "move";
+                        }}
                       >
                         <div
                           className="library__session-header"
