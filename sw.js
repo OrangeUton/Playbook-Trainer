@@ -1,7 +1,10 @@
-// ponytail: cache-first for same-origin GETs only, no precache list, no versioning UI --
-// good enough to keep the installed app usable with a flaky/no connection at school; a real
-// update flow (skip-waiting prompt, precache manifest) can come later if staleness is a problem.
-const CACHE = "playbook-trainer-v1";
+// Real bug, hit live 2026-08-22: cache-first meant every fresh deploy was invisible until a
+// second reload happened to land after the background refresh finished -- in practice, often
+// invisible indefinitely. The old ponytail note flagged this exact staleness risk as a future
+// problem; it became a real one. Network-first now: always try the live network first (so a
+// fresh deploy shows up on the very next load), only falling back to the cache when the network
+// genuinely fails -- that's the actual offline-at-practice case this file exists for.
+const CACHE = "playbook-trainer-v2";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -20,15 +23,11 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" || new URL(request.url).origin !== location.origin) return;
   event.respondWith(
-    caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(request);
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) cache.put(request, response.clone());
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    }),
+    fetch(request)
+      .then((response) => {
+        if (response.ok) caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
+        return response;
+      })
+      .catch(() => caches.open(CACHE).then((cache) => cache.match(request))),
   );
 });
